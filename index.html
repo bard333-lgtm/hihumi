@@ -2,33 +2,34 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <!-- スマホの画面自動ズームを無効化し、ピンチ操作を独自JSで制御 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ひふみ神示 読書アプリ</title>
   
   <style>
-    /* デザイン基本変数 */
     :root {
-      --bg-color: #f7f5f0;        /* 目に優しい和紙っぽい背景色 */
-      --text-color: #2b2b2b;      /* 濃いグレー */
+      --bg-color: #f7f5f0;
+      --text-color: #2b2b2b;
       --toolbar-bg: #ffffff;
       --border-color: #dcd6cd;
-      --font-size: 18px;          /* 初期文字サイズ */
-      --accent-color: #8b0000;    /* 深みのある赤（見出し等） */
+      --font-size: 18px;
+      --accent-color: #8b0000;
+      --drawer-bg: #ffffff;
+      --highlight-bg: #ffeb3b;
+      --highlight-color: #000000;
     }
 
-    /* 白黒反転（ダークモード） */
     body.dark-mode {
       --bg-color: #121212;
       --text-color: #e0e0e0;
       --toolbar-bg: #1e1e1e;
       --border-color: #333333;
       --accent-color: #ff6b6b;
+      --drawer-bg: #1a1a1a;
+      --highlight-bg: #fbc02d;
+      --highlight-color: #000000;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       background-color: var(--bg-color);
@@ -38,19 +39,18 @@
       line-height: 2.0;
       margin: 0;
       padding: 0;
-      touch-action: pan-x pan-y; /* スムーズなスクロール */
+      touch-action: pan-x pan-y;
       transition: background-color 0.3s, color 0.3s;
-      -webkit-user-select: none; /* ピンチ中の不要なテキスト選択を防止 */
+      -webkit-user-select: none;
       user-select: none;
     }
 
-    /* 本文エリアのみテキスト選択・コピー可能にする */
     .content-body {
       -webkit-user-select: text;
       user-select: text;
     }
 
-    /* 画面上部の固定操作ツールバー */
+    /* ツールバー */
     .toolbar {
       position: sticky;
       top: 0;
@@ -62,41 +62,125 @@
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-
-    .toolbar-title {
-      font-weight: bold;
-      font-size: 14px;
-      opacity: 0.8;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .btn-group {
       display: flex;
-      gap: 8px;
+      gap: 6px;
     }
 
     button {
       background: transparent;
       color: var(--text-color);
       border: 1px solid var(--border-color);
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
       font-size: 13px;
       cursor: pointer;
+    }
+
+    button:active { opacity: 0.6; }
+
+    /* 検索バーエリア */
+    .search-box {
+      width: 100%;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      gap: 8px;
+      margin-top: 4px;
     }
 
-    button:active {
-      opacity: 0.6;
+    .search-input {
+      flex: 1;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-size: 14px;
     }
 
-    /* 読書メイン表示エリア */
+    .search-count {
+      font-size: 12px;
+      opacity: 0.8;
+      align-self: center;
+      white-space: nowrap;
+    }
+
+    /* 検索結果ハイライト */
+    mark.highlight {
+      background-color: var(--highlight-bg);
+      color: var(--highlight-color);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    /* サイドメニュー（目次ドロワー） */
+    .drawer-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 280px;
+      background: var(--drawer-bg);
+      z-index: 201;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      padding: 20px 15px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .drawer.open { transform: translateX(0); }
+    .drawer-overlay.open { display: block; }
+
+    .drawer h3 {
+      margin: 0 0 10px 0;
+      color: var(--accent-color);
+      border-bottom: 2px solid var(--accent-color);
+      padding-bottom: 8px;
+      font-size: 1.1em;
+    }
+
+    .drawer h4 {
+      margin: 15px 0 5px 0;
+      font-size: 0.9em;
+      opacity: 0.7;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 3px;
+    }
+
+    .volume-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .volume-item {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .volume-item.active {
+      font-weight: bold;
+      color: var(--accent-color);
+    }
+
+    /* メインコンテナ */
     .container {
       max-width: 750px;
       margin: 0 auto;
-      padding: 20px 20px 80px 20px;
+      padding: 20px 20px 100px 20px;
     }
 
     .book-header {
@@ -116,6 +200,10 @@
       opacity: 0.7;
     }
 
+    .section-block {
+      margin-bottom: 30px;
+    }
+
     h2 {
       font-size: 1.1em;
       margin: 30px 0 15px 0;
@@ -129,62 +217,195 @@
       word-break: break-all;
     }
 
-    /* 記号の見栄え調整（必要に応じて装飾可能） */
-    .symbol {
-      font-weight: bold;
-      display: inline-block;
-      padding: 0 1px;
-    }
-
-    /* フッターヒント */
-    .guide-tip {
-      margin-top: 40px;
-      padding: 15px;
-      border-radius: 8px;
-      background: rgba(0,0,0,0.03);
-      font-size: 0.8em;
-      line-height: 1.6;
-      opacity: 0.7;
-      text-align: center;
-    }
+    .volume-content { display: none; }
+    .volume-content.active { display: block; }
   </style>
 </head>
 <body>
 
   <!-- ツールバー -->
   <div class="toolbar">
-    <div class="toolbar-title">ひふみ神示</div>
+    <button id="btnMenu">☰ 目次</button>
     <div class="btn-group">
       <button id="btnSmall">小</button>
       <button id="btnReset">標準</button>
       <button id="btnLarge">大</button>
-      <button id="btnToggleDark">白黒反転</button>
+      <button id="btnToggleDark">反転</button>
     </div>
+
+    <!-- 検索入力エリア -->
+    <div class="search-box">
+      <input type="text" id="searchInput" class="search-input" placeholder="全文から語句を検索..." />
+      <span id="searchCount" class="search-count"></span>
+    </div>
+  </div>
+
+  <!-- 目次ドロワー -->
+  <div class="drawer-overlay" id="overlay"></div>
+  <div class="drawer" id="drawer">
+    <h3>ひふみ神示 巻一覧</h3>
+    
+    <h4>本編（全三十一巻）</h4>
+    <ul class="volume-list">
+      <li class="volume-item active" data-vol="vol1">第一巻 上つ巻</li>
+      <li class="volume-item" data-vol="vol2">第二巻 下つ巻</li>
+      <li class="volume-item" data-vol="vol3">第三巻 富士の巻</li>
+      <li class="volume-item" data-vol="vol4">第四巻 天つ巻</li>
+      <li class="volume-item" data-vol="vol5">第五巻 地（九二）つ巻</li>
+      <li class="volume-item" data-vol="vol6">第六巻 日月の巻</li>
+      <li class="volume-item" data-vol="vol7">第七巻 日の出の巻</li>
+      <li class="volume-item" data-vol="vol8">第八巻 磐戸（一八十）の巻</li>
+      <li class="volume-item" data-vol="vol9">第九巻 キの巻</li>
+      <li class="volume-item" data-vol="vol10">第十巻 水の巻</li>
+      <li class="volume-item" data-vol="vol11">第十一巻 松の巻</li>
+      <li class="volume-item" data-vol="vol12">第十二巻 夜明けの巻</li>
+      <li class="volume-item" data-vol="vol13">第十三巻 アメの巻</li>
+      <li class="volume-item" data-vol="vol14">第十四巻 カゼの巻</li>
+      <li class="volume-item" data-vol="vol15">第十五巻 一八（イハ）の巻</li>
+      <li class="volume-item" data-vol="vol16">第十六巻 アレの巻</li>
+      <li class="volume-item" data-vol="vol17">第十七巻 二日んの巻（ジシンの巻）</li>
+      <li class="volume-item" data-vol="vol18">第十八巻 一火リの巻（ヒカリの巻）</li>
+      <li class="volume-item" data-vol="vol19">第十九巻 〇つりの巻（マツリの巻）</li>
+      <li class="volume-item" data-vol="vol20">第二十巻 んめの巻（ウメの巻）</li>
+      <li class="volume-item" data-vol="vol21">第二十一巻 三ラの巻（ソラの巻）</li>
+      <li class="volume-item" data-vol="vol22">第二十二巻 ア火ハの巻（アホバの巻）</li>
+      <li class="volume-item" data-vol="vol23">第二十三巻 ｜三の巻（ウミの巻）</li>
+      <li class="volume-item" data-vol="vol24">第二十四巻 黄金の巻（コガネの巻）</li>
+      <li class="volume-item" data-vol="vol25">第二十五巻 白銀の巻（シロガネの巻）</li>
+      <li class="volume-item" data-vol="vol26">第二十六巻 黒鉄の巻（クロガネの巻）</li>
+      <li class="volume-item" data-vol="vol27">第二十七巻 春の巻</li>
+      <li class="volume-item" data-vol="vol28">第二十八巻 夏の巻</li>
+      <li class="volume-item" data-vol="vol29">第二十九巻 秋の巻</li>
+      <li class="volume-item" data-vol="vol30">第三十巻 冬の巻</li>
+      <li class="volume-item" data-vol="vol31">補巻 月光の巻</li>
+    </ul>
+
+    <h4>五十黙示録（いせもくじろく）</h4>
+    <ul class="volume-list">
+      <li class="volume-item" data-vol="vol32">第一巻 扶桑之巻</li>
+      <li class="volume-item" data-vol="vol33">第二巻 碧玉之巻</li>
+      <li class="volume-item" data-vol="vol34">第三巻 星座之巻</li>
+      <li class="volume-item" data-vol="vol35">第四巻 龍音之巻</li>
+      <li class="volume-item" data-vol="vol36">第五巻 極め之巻</li>
+      <li class="volume-item" data-vol="vol37">第六巻 至恩之巻</li>
+      <li class="volume-item" data-vol="vol38">第七巻 五葉之巻</li>
+      <li class="volume-item" data-vol="vol39">補巻 紫金之巻</li>
+    </ul>
   </div>
 
   <!-- 本文エリア -->
   <div class="container">
-    <div class="book-header">
-      <h1>ひふみ神示 第一巻 上つ巻</h1>
-      <div class="book-subtitle">（昭和19年6月10日 - 7月9日） （全42帖）</div>
+    
+    <!-- 第一巻 上つ巻 -->
+    <div class="volume-content active" id="vol1">
+      <div class="book-header">
+        <h1>第一巻 上つ巻</h1>
+      </div>
+      <div class="content-body">
+        <div class="section-block">
+          <h2>第一帖（一）</h2>
+          <p>
+            二二は晴れたり、日本晴れ。神の国のまことの神の力をあらはす代となれる、仏もキリストも何も彼もはっきり助けて七六かしい御苦労のない代が来るから みたまを不断に磨いて一筋の誠を通して呉れよ。いま一苦労あるが、この苦労は身魂をみがいて居らぬと越せぬ、この世初まって二度とない苦労であ る。このむすびは神の力でないと何も出来ん、人間の算盤では弾けんことぞ、日本はお土があかる、外国はお土がさかる。都の大洗濯、鄙の大洗濯、人のお洗濯。今度は何うもこらへて呉れというところまで、後へひかぬから、その積りでかかって来い、神の国の神の力を、はっきりと見せてやる時が来た。嬉しくて苦しむ者と、苦しくて喜ぶ者と出て来る⦿は神の国、神の力でないと何んにも成就せん、人の力で何が出来たか、みな神がさしてゐるのざ、いつでも神かかれる様に、綺麗に洗濯して置いて呉れよ。戦は今年中と言ってゐるが、そんなちょこい戦ではない、世界中の洗濯ざから、いらぬものが無くなるまでは、終らぬ道理が分らぬか。臣民同士のいくさでない、カミと神、アカとあか、ヒトと人、ニクと肉、タマと魂のいくさぞ。己の心を見よ、戦が済んでいないであろ、それで戦が済むと思うてゐるとは、あきれたものぞ、早く掃除せぬと間に合わん、何より掃除が第一。さびしさは人のみかは、神は幾万倍ぞ、さびしさ越へて時を待つ。加実が世界の王になる、てんし様が神と分らん臣民ばかり、口と心と行と、三つ揃うたまことを命（みこと）といふぞ。神の臣民みな命（みこと）になる身魂、掃除身魂結構。六月の十日、ひつくのかみ。
+          </p>
+        </div>
+      </div>
     </div>
 
-    <div class="content-body">
-      <h2>第一帖</h2>
-      <p>
-        二二は晴れたり、日本晴れ。神の国のまことの神の力をあらはす代となれる、仏もキリストも何も彼もはっきり助けて七六かしい御苦労のない代が来るから みたまを不断に磨いて一筋の誠を通して呉れよ。いま一苦労あるが、この苦労は身魂をみがいて居らぬと越せぬ、この世初まって二度とない苦労であ る。このむすびは神の力でないと何も出来ん、人間の算盤では弾けんことぞ、日本はお土があかる、外国はお土がさかる。都の大洗濯、鄙の大洗濯、人のお洗濯。今度は何うもこらへて呉れというところまで、後へひかぬから、その積りでかかって来い、神の国の神の力を、はっきりと見せてやる時が来た。嬉しくて苦しむ者と、苦しくて喜ぶ者と出て来る⦿は神の国、神の力でないと何んにも成就せん、人の力で何が出来たか、みな神がさしてゐるのざ、いつでも神かかれる様に、綺麗に洗濯して置いて呉れよ。戦は今年中と言ってゐるが、そんなちょこい戦ではない、世界中の洗濯ざから、いらぬものが無くなるまでは、終らぬ道理が分らぬか。臣民同士のいくさでない、カミと神、アカとあか、ヒトと人、ニクと肉、タマと魂のいくさぞ。己の心を見よ、戦が済んでいないであろ、それで戦が済むと思うてゐるとは、あきれたものぞ、早く掃除せぬと間に合わん、何より掃除が第一。さびしさは人のみかは、神は幾万倍ぞ、さびしさ越へて時を待つ。加実が世界の王になる、てんし様が神と分らん臣民ばかり、口と心と行と、三つ揃うたまことを命（みこと）といふぞ。神の臣民みな命（みこと）になる身魂、掃除身魂結構。六月の十日、ひつくのかみ。
-      </p>
+    <!-- 第二巻 下つ巻 -->
+    <div class="volume-content" id="vol2">
+      <div class="book-header">
+        <h1>第二巻 下つ巻</h1>
+      </div>
+      <div class="content-body">
+        <div class="section-block">
+          <h2>第一帖（四三）</h2>
+          <p>（ここに第二巻の本文を追加していきます）</p>
+        </div>
+      </div>
     </div>
 
-    <div class="guide-tip">
-      💡 画面を2本指でつまんだり広げたり（ピンチ）すると、文字サイズを自由に変更できます。
+    <!-- 第三巻 富士の巻 -->
+    <div class="volume-content" id="vol3">
+      <div class="book-header">
+        <h1>第三巻 富士の巻</h1>
+      </div>
+      <div class="content-body">
+        <div class="section-block">
+          <h2>第一帖</h2>
+          <p>（ここに本文を追加）</p>
+        </div>
+      </div>
     </div>
+
+    <!-- 第四巻 天つ巻 -->
+    <div class="volume-content" id="vol4">
+      <div class="book-header">
+        <h1>第四巻 天つ巻</h1>
+      </div>
+      <div class="content-body">
+        <div class="section-block">
+          <h2>第一帖</h2>
+          <p>（ここに本文を追加）</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第五巻 地（九二）つ巻 -->
+    <div class="volume-content" id="vol5">
+      <div class="book-header"><h1>第五巻 地（九二）つ巻</h1></div>
+      <div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div>
+    </div>
+
+    <!-- ※ vol6 ～ vol39 まで同様に枠組みが用意されています -->
+    <div class="volume-content" id="vol6"><div class="book-header"><h1>第六巻 日月の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol7"><div class="book-header"><h1>第七巻 日の出の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol8"><div class="book-header"><h1>第八巻 磐戸（一八十）の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol9"><div class="book-header"><h1>第九巻 キの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol10"><div class="book-header"><h1>第十巻 水の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol11"><div class="book-header"><h1>第十一巻 松の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol12"><div class="book-header"><h1>第十二巻 夜明けの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol13"><div class="book-header"><h1>第十三巻 アメの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol14"><div class="book-header"><h1>第十四巻 カゼの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol15"><div class="book-header"><h1>第十五巻 一八（イハ）の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol16"><div class="book-header"><h1>第十六巻 アレの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol17"><div class="book-header"><h1>第十七巻 二日んの巻（ジシンの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol18"><div class="book-header"><h1>第十八巻 一火リの巻（ヒカリの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol19"><div class="book-header"><h1>第十九巻 〇つりの巻（マツリの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol20"><div class="book-header"><h1>第二十巻 んめの巻（ウメの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol21"><div class="book-header"><h1>第二十一巻 三ラの巻（ソラの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol22"><div class="book-header"><h1>第二十二巻 ア火ハの巻（アホバの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol23"><div class="book-header"><h1>第二十三巻 ｜三の巻（ウミの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol24"><div class="book-header"><h1>第二十四巻 黄金の巻（コガネの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol25"><div class="book-header"><h1>第二十五巻 白銀の巻（シロガネの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol26"><div class="book-header"><h1>第二十六巻 黒鉄の巻（クロガネの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol27"><div class="book-header"><h1>第二十七巻 春の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol28"><div class="book-header"><h1>第二十八巻 夏の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol29"><div class="book-header"><h1>第二十九巻 秋の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol30"><div class="book-header"><h1>第三十巻 冬の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol31"><div class="book-header"><h1>補巻 月光の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+
+    <!-- 五十黙示録 -->
+    <div class="volume-content" id="vol32"><div class="book-header"><h1>五十黙示録 第一巻 扶桑之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol33"><div class="book-header"><h1>五十黙示録 第二巻 碧玉之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol34"><div class="book-header"><h1>五十黙示録 第三巻 星座之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol35"><div class="book-header"><h1>五十黙示録 第四巻 龍音之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol36"><div class="book-header"><h1>五十黙示録 第五巻 極め之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol37"><div class="book-header"><h1>五十黙示録 第六巻 至恩之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol38"><div class="book-header"><h1>五十黙示録 第七巻 五葉之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+    <div class="volume-content" id="vol39"><div class="book-header"><h1>五十黙示録 補巻 紫金之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
+
   </div>
 
   <script>
-    // --- 状態管理 & 初期設定 ---
     let currentFontSize = parseInt(localStorage.getItem('fontSize')) || 18;
     let isDarkMode = localStorage.getItem('darkMode') === 'true';
+    let currentVol = localStorage.getItem('currentVolume') || 'vol1';
+    let scrollPositions = JSON.parse(localStorage.getItem('scrollPositions')) || {};
+
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('overlay');
+    const searchInput = document.getElementById('searchInput');
+    const searchCount = document.getElementById('searchCount');
 
     function applySettings() {
       document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
@@ -200,36 +421,127 @@
       applySettings();
     }
 
-    // --- ボタン操作 ---
+    function switchVolume(volId) {
+      scrollPositions[currentVol] = window.scrollY;
+      localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
+
+      document.querySelectorAll('.volume-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.volume-item').forEach(el => el.classList.remove('active'));
+
+      const targetVol = document.getElementById(volId);
+      const targetItem = document.querySelector(`.volume-item[data-vol="${volId}"]`);
+
+      if (targetVol) targetVol.classList.add('active');
+      if (targetItem) targetItem.classList.add('active');
+
+      currentVol = volId;
+      localStorage.setItem('currentVolume', currentVol);
+
+      searchInput.value = '';
+      clearSearch();
+
+      setTimeout(() => {
+        const savedPos = scrollPositions[volId] || 0;
+        window.scrollTo(0, savedPos);
+      }, 50);
+
+      closeDrawer();
+    }
+
+    // 検索機能
+    function performSearch() {
+      const keyword = searchInput.value.trim();
+      const activeVolume = document.getElementById(currentVol);
+      const blocks = activeVolume.querySelectorAll('.section-block');
+
+      if (!keyword) {
+        clearSearch();
+        return;
+      }
+
+      let totalMatch = 0;
+
+      blocks.forEach(block => {
+        const p = block.querySelector('p');
+        if (!p) return;
+
+        const originalText = p.textContent;
+        const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+        const matches = originalText.match(reg);
+
+        if (matches) {
+          totalMatch += matches.length;
+          block.style.display = 'block';
+          p.innerHTML = originalText.replace(reg, '<mark class="highlight">$1</mark>');
+        } else {
+          block.style.display = 'none';
+        }
+      });
+
+      searchCount.textContent = totalMatch > 0 ? `${totalMatch}件ヒット` : '該当なし';
+    }
+
+    function clearSearch() {
+      const activeVolume = document.getElementById(currentVol);
+      const blocks = activeVolume.querySelectorAll('.section-block');
+      blocks.forEach(block => {
+        block.style.display = 'block';
+        const p = block.querySelector('p');
+        if (p) p.innerHTML = p.textContent;
+      });
+      searchCount.textContent = '';
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    searchInput.addEventListener('input', performSearch);
+
+    // スクロール位置保存
+    let scrollTimer;
+    window.addEventListener('scroll', () => {
+      if (searchInput.value.trim() !== '') return;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrollPositions[currentVol] = window.scrollY;
+        localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
+      }, 200);
+    });
+
+    // ドロワー開閉
+    function openDrawer() { drawer.classList.add('open'); overlay.classList.add('open'); }
+    function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('open'); }
+
+    document.getElementById('btnMenu').addEventListener('click', openDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    document.querySelectorAll('.volume-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const volId = e.target.getAttribute('data-vol');
+        switchVolume(volId);
+      });
+    });
+
+    // ボタン操作
     document.getElementById('btnSmall').addEventListener('click', () => {
-      if (currentFontSize > 12) {
-        currentFontSize -= 2;
-        saveAndApply();
-      }
+      if (currentFontSize > 12) { currentFontSize -= 2; saveAndApply(); }
     });
-
     document.getElementById('btnLarge').addEventListener('click', () => {
-      if (currentFontSize < 42) {
-        currentFontSize += 2;
-        saveAndApply();
-      }
+      if (currentFontSize < 42) { currentFontSize += 2; saveAndApply(); }
     });
-
     document.getElementById('btnReset').addEventListener('click', () => {
-      currentFontSize = 18;
-      saveAndApply();
+      currentFontSize = 18; saveAndApply();
     });
-
     document.getElementById('btnToggleDark').addEventListener('click', () => {
       isDarkMode = !isDarkMode;
       localStorage.setItem('darkMode', isDarkMode);
       applySettings();
     });
 
-    // --- ピンチイン・ピンチアウト処理 ---
+    // ピンチ操作
     let initialDistance = 0;
     let initialFontSize = 18;
-
     function getDistance(touches) {
       const dx = touches[0].clientX - touches[1].clientX;
       const dy = touches[0].clientY - touches[1].clientY;
@@ -245,15 +557,11 @@
 
     window.addEventListener('touchmove', (e) => {
       if (e.touches.length === 2) {
-        e.preventDefault(); // ブラウザ全体の勝手なズームを防止
-
+        e.preventDefault();
         const currentDistance = getDistance(e.touches);
         const distanceChange = currentDistance - initialDistance;
-
-        // 感度設定（12px 〜 42pxの範囲に制限）
         let newSize = initialFontSize + Math.round(distanceChange / 12);
         newSize = Math.max(12, Math.min(42, newSize));
-
         if (newSize !== currentFontSize) {
           currentFontSize = newSize;
           applySettings();
@@ -261,34 +569,23 @@
       }
     }, { passive: false });
 
-    window.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        localStorage.setItem('fontSize', currentFontSize);
-      }
-    });
-
-    // --- インストール後のオフライン化用 (Service Worker インライン登録) ---
+    // オフライン設定
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'hifumi-app-v1';
+        const CACHE_NAME = 'hifumi-app-v4';
         self.addEventListener('install', (e) => {
-          e.waitUntil(
-            caches.open(CACHE_NAME).then((cache) => cache.addAll(['./']))
-          );
+          e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
         });
         self.addEventListener('fetch', (e) => {
-          e.respondWith(
-            caches.match(e.request).then((res) => res || fetch(e.request))
-          );
+          e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
         });
       `;
       const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      navigator.serviceWorker.register(swUrl).catch(() => {});
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
     }
 
-    // 初回実行
     applySettings();
+    switchVolume(currentVol);
   </script>
 </body>
 </html>
