@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- スマホの画面自動ズームを無効化し、ピンチ操作を独自JSで制御 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ひふみ神示 読書アプリ</title>
+  
+  <style>
+    /* デザイン基本変数 */
+    :root {
+      --bg-color: #f7f5f0;        /* 目に優しい和紙っぽい背景色 */
+      --text-color: #2b2b2b;      /* 濃いグレー */
+      --toolbar-bg: #ffffff;
+      --border-color: #dcd6cd;
+      --font-size: 18px;          /* 初期文字サイズ */
+      --accent-color: #8b0000;    /* 深みのある赤（見出し等） */
+    }
+
+    /* 白黒反転（ダークモード） */
+    body.dark-mode {
+      --bg-color: #121212;
+      --text-color: #e0e0e0;
+      --toolbar-bg: #1e1e1e;
+      --border-color: #333333;
+      --accent-color: #ff6b6b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-size: var(--font-size);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      line-height: 2.0;
+      margin: 0;
+      padding: 0;
+      touch-action: pan-x pan-y; /* スムーズなスクロール */
+      transition: background-color 0.3s, color 0.3s;
+      -webkit-user-select: none; /* ピンチ中の不要なテキスト選択を防止 */
+      user-select: none;
+    }
+
+    /* 本文エリアのみテキスト選択・コピー可能にする */
+    .content-body {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    /* 画面上部の固定操作ツールバー */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: var(--toolbar-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .toolbar-title {
+      font-weight: bold;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      background: transparent;
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button:active {
+      opacity: 0.6;
+    }
+
+    /* 読書メイン表示エリア */
+    .container {
+      max-width: 750px;
+      margin: 0 auto;
+      padding: 20px 20px 80px 20px;
+    }
+
+    .book-header {
+      border-bottom: 2px solid var(--accent-color);
+      padding-bottom: 10px;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      font-size: 1.3em;
+      margin: 0 0 5px 0;
+      color: var(--accent-color);
+    }
+
+    .book-subtitle {
+      font-size: 0.8em;
+      opacity: 0.7;
+    }
+
+    h2 {
+      font-size: 1.1em;
+      margin: 30px 0 15px 0;
+      padding-left: 10px;
+      border-left: 4px solid var(--accent-color);
+    }
+
+    p {
+      margin-bottom: 1.5em;
+      text-align: justify;
+      word-break: break-all;
+    }
+
+    /* 記号の見栄え調整（必要に応じて装飾可能） */
+    .symbol {
+      font-weight: bold;
+      display: inline-block;
+      padding: 0 1px;
+    }
+
+    /* フッターヒント */
+    .guide-tip {
+      margin-top: 40px;
+      padding: 15px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.03);
+      font-size: 0.8em;
+      line-height: 1.6;
+      opacity: 0.7;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ツールバー -->
+  <div class="toolbar">
+    <div class="toolbar-title">ひふみ神示</div>
+    <div class="btn-group">
+      <button id="btnSmall">小</button>
+      <button id="btnReset">標準</button>
+      <button id="btnLarge">大</button>
+      <button id="btnToggleDark">白黒反転</button>
+    </div>
+  </div>
+
+  <!-- 本文エリア -->
+  <div class="container">
+    <div class="book-header">
+      <h1>ひふみ神示 第一巻 上つ巻</h1>
+      <div class="book-subtitle">（昭和19年6月10日 - 7月9日） （全42帖）</div>
+    </div>
+
+    <div class="content-body">
+      <h2>第一帖（一）</h2>
+      <p>
+        二二は晴れたり、日本晴れ。神の国のまことの神の力をあらはす代となれる、仏もキリストも何も彼もはっきり助けて七六かしい御苦労のない代が来るから みたまを不断に磨いて一筋の誠を通して呉れよ。いま一苦労あるが、この苦労は身魂をみがいて居らぬと越せぬ、この世初まって二度とない苦労であ る。このむすびは神の力でないと何も出来ん、人間の算盤では弾けんことぞ、日本はお土があかる、外国はお土がさかる。都の大洗濯、鄙の大洗濯、人のお洗濯。今度は何うもこらへて呉れというところまで、後へひかぬから、その積りでかかって来い、神の国の神の力を、はっきりと見せてやる時が来た。嬉しくて苦しむ者と、苦しくて喜ぶ者と出て来るは<span class="symbol">⦿</span>神の国、神の力でないと何んにも成就せん、人の力で何が出来たか、みな神がさしてゐるのざ、いつでも神かかれる様に、綺麗に洗濯して置いて呉れよ。戦は今年中と言ってゐるが、そんなちょこい戦ではない、世界中の洗濯ざから、いらぬものが無くなるまでは、終らぬ道理が分らぬか。臣民同士のいくさでない、カミと神、アカとあか、ヒトと人、ニクと肉、タマと魂のいくさぞ。己の心を見よ、戦が済んでいないであろ、それで戦が済むと思うてゐるとは、あきれたものぞ、早く掃除せぬと間に合わん、何より掃除が第一。さびしさは人のみかは、神は幾万倍ぞ、さびしさ越へて時を待つ。加実が世界の王になる、てんし様が神と分らん臣民ばかり、口と心と行と、三つ揃うたまことを命（みこと）といふぞ。神の臣民みな命（みこと）になる身魂、掃除身魂結構。六月の十日、ひつくのかみ。
+      </p>
+    </div>
+
+    <div class="guide-tip">
+      💡 画面を2本指でつまんだり広げたり（ピンチ）すると、文字サイズを自由に変更できます。
+    </div>
+  </div>
+
+  <script>
+    // --- 状態管理 & 初期設定 ---
+    let currentFontSize = parseInt(localStorage.getItem('fontSize')) || 18;
+    let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+    function applySettings() {
+      document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+    }
+
+    function saveAndApply() {
+      localStorage.setItem('fontSize', currentFontSize);
+      applySettings();
+    }
+
+    // --- ボタン操作 ---
+    document.getElementById('btnSmall').addEventListener('click', () => {
+      if (currentFontSize > 12) {
+        currentFontSize -= 2;
+        saveAndApply();
+      }
+    });
+
+    document.getElementById('btnLarge').addEventListener('click', () => {
+      if (currentFontSize < 42) {
+        currentFontSize += 2;
+        saveAndApply();
+      }
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      currentFontSize = 18;
+      saveAndApply();
+    });
+
+    document.getElementById('btnToggleDark').addEventListener('click', () => {
+      isDarkMode = !isDarkMode;
+      localStorage.setItem('darkMode', isDarkMode);
+      applySettings();
+    });
+
+    // --- ピンチイン・ピンチアウト処理 ---
+    let initialDistance = 0;
+    let initialFontSize = 18;
+
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches);
+        initialFontSize = currentFontSize;
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault(); // ブラウザ全体の勝手なズームを防止
+
+        const currentDistance = getDistance(e.touches);
+        const distanceChange = currentDistance - initialDistance;
+
+        // 感度設定（12px 〜 42pxの範囲に制限）
+        let newSize = initialFontSize + Math.round(distanceChange / 12);
+        newSize = Math.max(12, Math.min(42, newSize));
+
+        if (newSize !== currentFontSize) {
+          currentFontSize = newSize;
+          applySettings();
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        localStorage.setItem('fontSize', currentFontSize);
+      }
+    });
+
+    // --- インストール後のオフライン化用 (Service Worker インライン登録) ---
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'hifumi-app-v1';
+        self.addEventListener('install', (e) => {
+          e.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(['./']))
+          );
+        });
+        self.addEventListener('fetch', (e) => {
+          e.respondWith(
+            caches.match(e.request).then((res) => res || fetch(e.request))
+          );
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(() => {});
+    }
+
+    // 初回実行
+    applySettings();
+  </script>
+</body>
+</html>
