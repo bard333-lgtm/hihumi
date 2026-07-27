@@ -16,6 +16,7 @@
       --drawer-bg: #ffffff;
       --highlight-bg: #ffeb3b;
       --highlight-color: #000000;
+      --card-bg: #ffffff;
     }
 
     body.dark-mode {
@@ -27,6 +28,7 @@
       --drawer-bg: #1a1a1a;
       --highlight-bg: #fbc02d;
       --highlight-color: #000000;
+      --card-bg: #1e1e1e;
     }
 
     * { box-sizing: border-box; }
@@ -89,16 +91,30 @@
       display: flex;
       gap: 8px;
       margin-top: 4px;
+      position: relative;
     }
 
     .search-input {
       flex: 1;
-      padding: 6px 12px;
+      padding: 6px 30px 6px 12px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       background: var(--bg-color);
       color: var(--text-color);
       font-size: 14px;
+    }
+
+    .btn-clear {
+      position: absolute;
+      right: 80px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: none;
+      font-size: 14px;
+      opacity: 0.5;
+      padding: 4px;
+      display: none;
     }
 
     .search-count {
@@ -108,12 +124,46 @@
       white-space: nowrap;
     }
 
-    /* 検索結果ハイライト */
+    /* 検索結果画面 */
+    #searchResultArea {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .search-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .search-card:active {
+      border-color: var(--accent-color);
+    }
+
+    .search-card-header {
+      font-weight: bold;
+      color: var(--accent-color);
+      font-size: 0.9em;
+      margin-bottom: 8px;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 4px;
+    }
+
+    .search-card-body {
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+
     mark.highlight {
       background-color: var(--highlight-bg);
       color: var(--highlight-color);
       padding: 0 2px;
       border-radius: 2px;
+      font-weight: bold;
     }
 
     /* サイドメニュー（目次ドロワー） */
@@ -195,11 +245,6 @@
       color: var(--accent-color);
     }
 
-    .book-subtitle {
-      font-size: 0.8em;
-      opacity: 0.7;
-    }
-
     .section-block {
       margin-bottom: 30px;
     }
@@ -233,9 +278,10 @@
       <button id="btnToggleDark">反転</button>
     </div>
 
-    <!-- 検索入力エリア -->
+    <!-- 全巻横断検索バー -->
     <div class="search-box">
-      <input type="text" id="searchInput" class="search-input" placeholder="全文から語句を検索..." />
+      <input type="text" id="searchInput" class="search-input" placeholder="全39巻から語句を検索..." />
+      <button id="btnClearSearch" class="btn-clear">✕</button>
       <span id="searchCount" class="search-count"></span>
     </div>
   </div>
@@ -293,106 +339,87 @@
     </ul>
   </div>
 
-  <!-- 本文エリア -->
+  <!-- メインコンテナ -->
   <div class="container">
     
-    <!-- 第一巻 上つ巻 -->
-    <div class="volume-content active" id="vol1">
-      <div class="book-header">
-        <h1>第一巻 上つ巻</h1>
-      </div>
-      <div class="content-body">
-        <div class="section-block">
-          <h2>第一帖（一）</h2>
-          <p>
-            二二は晴れたり、日本晴れ。神の国のまことの神の力をあらはす代となれる、仏もキリストも何も彼もはっきり助けて七六かしい御苦労のない代が来るから みたまを不断に磨いて一筋の誠を通して呉れよ。いま一苦労あるが、この苦労は身魂をみがいて居らぬと越せぬ、この世初まって二度とない苦労であ る。このむすびは神の力でないと何も出来ん、人間の算盤では弾けんことぞ、日本はお土があかる、外国はお土がさかる。都の大洗濯、鄙の大洗濯、人のお洗濯。今度は何うもこらへて呉れというところまで、後へひかぬから、その積りでかかって来い、神の国の神の力を、はっきりと見せてやる時が来た。嬉しくて苦しむ者と、苦しくて喜ぶ者と出て来るは⦿神の国、神の力でないと何んにも成就せん、人の力で何が出来たか、みな神がさしてゐるのざ、いつでも神かかれる様に、綺麗に洗濯して置いて呉れよ。戦は今年中と言ってゐるが、そんなちょこい戦ではない、世界中の洗濯ざから、いらぬものが無くなるまでは、終らぬ道理が分らぬか。臣民同士のいくさでない、カミと神、アカとあか、ヒトと人、ニクと肉、タマと魂のいくさぞ。己の心を見よ、戦が済んでいないであろ、それで戦が済むと思うてゐるとは、あきれたものぞ、早く掃除せぬと間に合わん、何より掃除が第一。さびしさは人のみかは、神は幾万倍ぞ、さびしさ越へて時を待つ。加実が世界の王になる、てんし様が神と分らん臣民ばかり、口と心と行と、三つ揃うたまことを命（みこと）といふぞ。神の臣民みな命（みこと）になる身魂、掃除身魂結構。六月の十日、ひつくのかみ。
-          </p>
+    <!-- 全巻一括検索の表示エリア -->
+    <div id="searchResultArea"></div>
+
+    <!-- 本文読書エリア -->
+    <div id="readerArea">
+      <!-- 第一巻 上つ巻 -->
+      <div class="volume-content active" id="vol1" data-vol-title="第一巻 上つ巻">
+        <div class="book-header"><h1>第一巻 上つ巻</h1></div>
+        <div class="content-body">
+          <div class="section-block" id="vol1-1">
+            <h2>第一帖（一）</h2>
+            <p>二二は晴れたり、日本晴れ。神の国のまことの神の力をあらはす代となれる、仏もキリストも何も彼もはっきり助けて七六かしい御苦労のない代が来るから みたまを不断に磨いて一筋の誠を通して呉れよ。いま一苦労あるが、この苦労は身魂をみがいて居らぬと越せぬ、この世初まって二度とない苦労であ る。このむすびは神の力でないと何も出来ん、人間の算盤では弾けんことぞ、日本はお土があかる、外国はお土がさかる。都の大洗濯、鄙の大洗濯、人のお洗濯。今度は何うもこらへて呉れというところまで、後へひかぬから、その積りでかかって来い、神の国の神の力を、はっきりと見せてやる時が来た。嬉しくて苦しむ者と、苦しくて喜ぶ者と出て来るは⦿神の国、神の力でないと何んにも成就せん、人の力で何が出来たか、みな神がさしてゐるのざ、いつでも神かかれる様に、綺麗に洗濯して置いて呉れよ。戦は今年中と言ってゐるが、そんなちょこい戦ではない、世界中の洗濯ざから、いらぬものが無くなるまでは、終らぬ道理が分らぬか。臣民同士のいくさでない、カミと神、アカとあか、ヒトと人、ニクと肉、タマと魂のいくさぞ。己の心を見よ、戦が済んでいないであろ、それで戦が済むと思うてゐるとは、あきれたものぞ、早く掃除せぬと間に合わん、何より掃除が第一。さびしさは人のみかは、神は幾万倍ぞ、さびしさ越へて時を待つ。加実が世界の王になる、てんし様が神と分らん臣民ばかり、口と心と行と、三つ揃うたまことを命（みこと）といふぞ。神の臣民みな命（みこと）になる身魂、掃除身魂結構。六月の十日、ひつくのかみ。</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 第二巻 下つ巻 -->
-    <div class="volume-content" id="vol2">
-      <div class="book-header">
-        <h1>第二巻 下つ巻</h1>
-      </div>
-      <div class="content-body">
-        <div class="section-block">
-          <h2>第一帖（四三）</h2>
-          <p>（ここに第二巻の本文を追加していきます）</p>
+      <!-- 第二巻 下つ巻 -->
+      <div class="volume-content" id="vol2" data-vol-title="第二巻 下つ巻">
+        <div class="book-header"><h1>第二巻 下つ巻</h1></div>
+        <div class="content-body">
+          <div class="section-block" id="vol2-1">
+            <h2>第一帖（四三）</h2>
+            <p>（ここに第二巻の本文を追加していきます）</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 第三巻 富士の巻 -->
-    <div class="volume-content" id="vol3">
-      <div class="book-header">
-        <h1>第三巻 富士の巻</h1>
-      </div>
-      <div class="content-body">
-        <div class="section-block">
-          <h2>第一帖</h2>
-          <p>（ここに本文を追加）</p>
+      <!-- 第三巻 富士の巻 -->
+      <div class="volume-content" id="vol3" data-vol-title="第三巻 富士の巻">
+        <div class="book-header"><h1>第三巻 富士の巻</h1></div>
+        <div class="content-body">
+          <div class="section-block" id="vol3-1">
+            <h2>第一帖</h2>
+            <p>（ここに本文を追加）</p>
+          </div>
         </div>
       </div>
+
+      <!-- 第四巻 天つ巻 -->
+      <div class="volume-content" id="vol4" data-vol-title="第四巻 天つ巻"><div class="book-header"><h1>第四巻 天つ巻</h1></div><div class="content-body"><div class="section-block" id="vol4-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol5" data-vol-title="第五巻 地（九二）つ巻"><div class="book-header"><h1>第五巻 地（九二）つ巻</h1></div><div class="content-body"><div class="section-block" id="vol5-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol6" data-vol-title="第六巻 日月の巻"><div class="book-header"><h1>第六巻 日月の巻</h1></div><div class="content-body"><div class="section-block" id="vol6-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol7" data-vol-title="第七巻 日の出の巻"><div class="book-header"><h1>第七巻 日の出の巻</h1></div><div class="content-body"><div class="section-block" id="vol7-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol8" data-vol-title="第八巻 磐戸（一八十）の巻"><div class="book-header"><h1>第八巻 磐戸（一八十）の巻</h1></div><div class="content-body"><div class="section-block" id="vol8-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol9" data-vol-title="第九巻 キの巻"><div class="book-header"><h1>第九巻 キの巻</h1></div><div class="content-body"><div class="section-block" id="vol9-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol10" data-vol-title="第十巻 水の巻"><div class="book-header"><h1>第十巻 水の巻</h1></div><div class="content-body"><div class="section-block" id="vol10-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol11" data-vol-title="第十一巻 松の巻"><div class="book-header"><h1>第十一巻 松の巻</h1></div><div class="content-body"><div class="section-block" id="vol11-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol12" data-vol-title="第十二巻 夜明けの巻"><div class="book-header"><h1>第十二巻 夜明けの巻</h1></div><div class="content-body"><div class="section-block" id="vol12-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol13" data-vol-title="第十三巻 アメの巻"><div class="book-header"><h1>第十三巻 アメの巻</h1></div><div class="content-body"><div class="section-block" id="vol13-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol14" data-vol-title="第十四巻 カゼの巻"><div class="book-header"><h1>第十四巻 カゼの巻</h1></div><div class="content-body"><div class="section-block" id="vol14-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol15" data-vol-title="第十五巻 一八（イハ）の巻"><div class="book-header"><h1>第十五巻 一八（イハ）の巻</h1></div><div class="content-body"><div class="section-block" id="vol15-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol16" data-vol-title="第十六巻 アレの巻"><div class="book-header"><h1>第十六巻 アレの巻</h1></div><div class="content-body"><div class="section-block" id="vol16-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol17" data-vol-title="第十七巻 二日んの巻（ジシンの巻）"><div class="book-header"><h1>第十七巻 二日んの巻（ジシンの巻）</h1></div><div class="content-body"><div class="section-block" id="vol17-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol18" data-vol-title="第十八巻 一火リの巻（ヒカリの巻）"><div class="book-header"><h1>第十八巻 一火リの巻（ヒカリの巻）</h1></div><div class="content-body"><div class="section-block" id="vol18-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol19" data-vol-title="第十九巻 〇つりの巻（マツリの巻）"><div class="book-header"><h1>第十九巻 〇つりの巻（マツリの巻）</h1></div><div class="content-body"><div class="section-block" id="vol19-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol20" data-vol-title="第二十巻 んめの巻（ウメの巻）"><div class="book-header"><h1>第二十巻 んめの巻（ウメの巻）</h1></div><div class="content-body"><div class="section-block" id="vol20-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol21" data-vol-title="第二十一巻 三ラの巻（ソラの巻）"><div class="book-header"><h1>第二十一巻 三ラの巻（ソラの巻）</h1></div><div class="content-body"><div class="section-block" id="vol21-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol22" data-vol-title="第二十二巻 ア火ハの巻（アホバの巻）"><div class="book-header"><h1>第二学習巻 ア火ハの巻（アホバの巻）</h1></div><div class="content-body"><div class="section-block" id="vol22-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol23" data-vol-title="第二十三巻 ｜三の巻（ウミの巻）"><div class="book-header"><h1>第二十三巻 ｜三の巻（ウミの巻）</h1></div><div class="content-body"><div class="section-block" id="vol23-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol24" data-vol-title="第二十四巻 黄金の巻（コガネの巻）"><div class="book-header"><h1>第二十四巻 黄金の巻（コガネの巻）</h1></div><div class="content-body"><div class="section-block" id="vol24-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol25" data-vol-title="第二十五巻 白銀の巻（シロガネの巻）"><div class="book-header"><h1>第二十五巻 白銀の巻（シロガネの巻）</h1></div><div class="content-body"><div class="section-block" id="vol25-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol26" data-vol-title="第二十六巻 黒鉄の巻（クロガネの巻）"><div class="book-header"><h1>第二十六巻 黒鉄の巻（クロガネの巻）</h1></div><div class="content-body"><div class="section-block" id="vol26-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol27" data-vol-title="第二十七巻 春の巻"><div class="book-header"><h1>第二十七巻 春の巻</h1></div><div class="content-body"><div class="section-block" id="vol27-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol28" data-vol-title="第二十八巻 夏の巻"><div class="book-header"><h1>第二十八巻 夏の巻</h1></div><div class="content-body"><div class="section-block" id="vol28-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol29" data-vol-title="第二十九巻 秋の巻"><div class="book-header"><h1>第二十九巻 秋の巻</h1></div><div class="content-body"><div class="section-block" id="vol29-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol30" data-vol-title="第三十巻 冬の巻"><div class="book-header"><h1>第三十巻 冬の巻</h1></div><div class="content-body"><div class="section-block" id="vol30-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol31" data-vol-title="補巻 月光の巻"><div class="book-header"><h1>補巻 月光の巻</h1></div><div class="content-body"><div class="section-block" id="vol31-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+
+      <!-- 五十黙示録 -->
+      <div class="volume-content" id="vol32" data-vol-title="五十黙示録 第一巻 扶桑之巻"><div class="book-header"><h1>五十黙示録 第一巻 扶桑之巻</h1></div><div class="content-body"><div class="section-block" id="vol32-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol33" data-vol-title="五十黙示録 第二巻 碧玉之巻"><div class="book-header"><h1>五十黙示録 第二巻 碧玉之巻</h1></div><div class="content-body"><div class="section-block" id="vol33-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol34" data-vol-title="五十黙示録 第三巻 星座之巻"><div class="book-header"><h1>五十黙示録 第三巻 星座之巻</h1></div><div class="content-body"><div class="section-block" id="vol34-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol35" data-vol-title="五十黙示録 第四巻 龍音之巻"><div class="book-header"><h1>五十黙示録 第四巻 龍音之巻</h1></div><div class="content-body"><div class="section-block" id="vol35-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol36" data-vol-title="五十黙示録 第五巻 極め之巻"><div class="book-header"><h1>五十黙示録 第五巻 極め之巻</h1></div><div class="content-body"><div class="section-block" id="vol36-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol37" data-vol-title="五十黙示録 第六巻 至恩之巻"><div class="book-header"><h1>五十黙示録 第六巻 至恩之巻</h1></div><div class="content-body"><div class="section-block" id="vol37-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol38" data-vol-title="五十黙示録 第七巻 五葉之巻"><div class="book-header"><h1>五十黙示録 第七巻 五葉之巻</h1></div><div class="content-body"><div class="section-block" id="vol38-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol39" data-vol-title="五十黙示録 補巻 紫金之巻"><div class="book-header"><h1>五十黙示録 補巻 紫金之巻</h1></div><div class="content-body"><div class="section-block" id="vol39-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
     </div>
-
-    <!-- 第四巻 天つ巻 -->
-    <div class="volume-content" id="vol4">
-      <div class="book-header">
-        <h1>第四巻 天つ巻</h1>
-      </div>
-      <div class="content-body">
-        <div class="section-block">
-          <h2>第一帖</h2>
-          <p>（ここに本文を追加）</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 第五巻 地（九二）つ巻 -->
-    <div class="volume-content" id="vol5">
-      <div class="book-header"><h1>第五巻 地（九二）つ巻</h1></div>
-      <div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div>
-    </div>
-
-    <!-- ※ vol6 ～ vol39 まで同様に枠組みが用意されています -->
-    <div class="volume-content" id="vol6"><div class="book-header"><h1>第六巻 日月の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol7"><div class="book-header"><h1>第七巻 日の出の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol8"><div class="book-header"><h1>第八巻 磐戸（一八十）の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol9"><div class="book-header"><h1>第九巻 キの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol10"><div class="book-header"><h1>第十巻 水の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol11"><div class="book-header"><h1>第十一巻 松の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol12"><div class="book-header"><h1>第十二巻 夜明けの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol13"><div class="book-header"><h1>第十三巻 アメの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol14"><div class="book-header"><h1>第十四巻 カゼの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol15"><div class="book-header"><h1>第十五巻 一八（イハ）の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol16"><div class="book-header"><h1>第十六巻 アレの巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol17"><div class="book-header"><h1>第十七巻 二日んの巻（ジシンの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol18"><div class="book-header"><h1>第十八巻 一火リの巻（ヒカリの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol19"><div class="book-header"><h1>第十九巻 〇つりの巻（マツリの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol20"><div class="book-header"><h1>第二十巻 んめの巻（ウメの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol21"><div class="book-header"><h1>第二十一巻 三ラの巻（ソラの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol22"><div class="book-header"><h1>第二十二巻 ア火ハの巻（アホバの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol23"><div class="book-header"><h1>第二十三巻 ｜三の巻（ウミの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol24"><div class="book-header"><h1>第二十四巻 黄金の巻（コガネの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol25"><div class="book-header"><h1>第二十五巻 白銀の巻（シロガネの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol26"><div class="book-header"><h1>第二十六巻 黒鉄の巻（クロガネの巻）</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol27"><div class="book-header"><h1>第二十七巻 春の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol28"><div class="book-header"><h1>第二十八巻 夏の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol29"><div class="book-header"><h1>第二十九巻 秋の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol30"><div class="book-header"><h1>第三十巻 冬の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol31"><div class="book-header"><h1>補巻 月光の巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-
-    <!-- 五十黙示録 -->
-    <div class="volume-content" id="vol32"><div class="book-header"><h1>五十黙示録 第一巻 扶桑之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol33"><div class="book-header"><h1>五十黙示録 第二巻 碧玉之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol34"><div class="book-header"><h1>五十黙示録 第三巻 星座之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol35"><div class="book-header"><h1>五十黙示録 第四巻 龍音之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol36"><div class="book-header"><h1>五十黙示録 第五巻 極め之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol37"><div class="book-header"><h1>五十黙示録 第六巻 至恩之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol38"><div class="book-header"><h1>五十黙示録 第七巻 五葉之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
-    <div class="volume-content" id="vol39"><div class="book-header"><h1>五十黙示録 補巻 紫金之巻</h1></div><div class="content-body"><div class="section-block"><p>（本文準備中）</p></div></div></div>
 
   </div>
 
@@ -405,7 +432,10 @@
     const drawer = document.getElementById('drawer');
     const overlay = document.getElementById('overlay');
     const searchInput = document.getElementById('searchInput');
+    const btnClearSearch = document.getElementById('btnClearSearch');
     const searchCount = document.getElementById('searchCount');
+    const searchResultArea = document.getElementById('searchResultArea');
+    const readerArea = document.getElementById('readerArea');
 
     function applySettings() {
       document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
@@ -421,7 +451,10 @@
       applySettings();
     }
 
-    function switchVolume(volId) {
+    function switchVolume(volId, targetBlockId = null) {
+      // 検索状態をクリア
+      clearSearchUI();
+
       scrollPositions[currentVol] = window.scrollY;
       localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
 
@@ -437,66 +470,100 @@
       currentVol = volId;
       localStorage.setItem('currentVolume', currentVol);
 
-      searchInput.value = '';
-      clearSearch();
+      closeDrawer();
 
       setTimeout(() => {
+        if (targetBlockId) {
+          const el = document.getElementById(targetBlockId);
+          if (el) {
+            const y = el.getBoundingClientRect().top + window.pageYOffset - 70;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+            return;
+          }
+        }
         const savedPos = scrollPositions[volId] || 0;
         window.scrollTo(0, savedPos);
-      }, 50);
-
-      closeDrawer();
+      }, 100);
     }
 
-    // 検索機能
-    function performSearch() {
+    // --- 全巻一括（横断）検索機能 ---
+    function performGlobalSearch() {
       const keyword = searchInput.value.trim();
-      const activeVolume = document.getElementById(currentVol);
-      const blocks = activeVolume.querySelectorAll('.section-block');
 
       if (!keyword) {
-        clearSearch();
+        clearSearchUI();
         return;
       }
 
-      let totalMatch = 0;
+      btnClearSearch.style.display = 'block';
+      readerArea.style.display = 'none';
+      searchResultArea.style.display = 'block';
+      searchResultArea.innerHTML = '';
 
-      blocks.forEach(block => {
-        const p = block.querySelector('p');
-        if (!p) return;
+      let totalMatchCount = 0;
+      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
 
-        const originalText = p.textContent;
-        const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
-        const matches = originalText.match(reg);
+      // 全39巻のDOM要素をそのまま走査（非表示の巻も含む）
+      const allVolumes = document.querySelectorAll('.volume-content');
 
-        if (matches) {
-          totalMatch += matches.length;
-          block.style.display = 'block';
-          p.innerHTML = originalText.replace(reg, '<mark class="highlight">$1</mark>');
-        } else {
-          block.style.display = 'none';
-        }
+      allVolumes.forEach(vol => {
+        const volId = vol.id;
+        const volTitle = vol.getAttribute('data-vol-title') || '巻';
+        const blocks = vol.querySelectorAll('.section-block');
+
+        blocks.forEach(block => {
+          const blockId = block.id;
+          const h2 = block.querySelector('h2');
+          const p = block.querySelector('p');
+          if (!p) return;
+
+          // innerText ではなく textContent で確実に取得
+          const rawText = p.textContent || p.innerText || '';
+          
+          if (reg.test(rawText)) {
+            const matches = rawText.match(reg);
+            if (matches) totalMatchCount += matches.length;
+
+            const titleText = h2 ? h2.textContent : '帖';
+            // キーワードハイライト処理
+            const highlightedText = rawText.replace(reg, '<mark class="highlight">$1</mark>');
+
+            const card = document.createElement('div');
+            card.className = 'search-card';
+            card.innerHTML = `
+              <div class="search-card-header">${volTitle} - ${titleText}</div>
+              <div class="search-card-body">${highlightedText}</div>
+            `;
+
+            // タップでその場所に直接ジャンプ
+            card.addEventListener('click', () => {
+              switchVolume(volId, blockId);
+            });
+
+            searchResultArea.appendChild(card);
+          }
+        });
       });
 
-      searchCount.textContent = totalMatch > 0 ? `${totalMatch}件ヒット` : '該当なし';
+      searchCount.textContent = totalMatchCount > 0 ? `${totalMatchCount}件ヒット` : '該当なし';
+      window.scrollTo(0, 0);
     }
 
-    function clearSearch() {
-      const activeVolume = document.getElementById(currentVol);
-      const blocks = activeVolume.querySelectorAll('.section-block');
-      blocks.forEach(block => {
-        block.style.display = 'block';
-        const p = block.querySelector('p');
-        if (p) p.innerHTML = p.textContent;
-      });
+    function clearSearchUI() {
+      searchInput.value = '';
+      btnClearSearch.style.display = 'none';
       searchCount.textContent = '';
+      searchResultArea.innerHTML = '';
+      searchResultArea.style.display = 'none';
+      readerArea.style.display = 'block';
     }
 
     function escapeRegExp(string) {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    searchInput.addEventListener('input', performSearch);
+    searchInput.addEventListener('input', performGlobalSearch);
+    btnClearSearch.addEventListener('click', clearSearchUI);
 
     // スクロール位置保存
     let scrollTimer;
@@ -569,10 +636,10 @@
       }
     }, { passive: false });
 
-    // オフライン設定
+    // オフライン対応（キャッシュの更新）
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'hifumi-app-v4';
+        const CACHE_NAME = 'hifumi-app-v6';
         self.addEventListener('install', (e) => {
           e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
         });
