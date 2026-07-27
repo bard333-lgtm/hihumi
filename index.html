@@ -85,6 +85,18 @@
 
     button:active { opacity: 0.6; }
 
+    .btn-return-search {
+      background: var(--accent-color);
+      color: #ffffff !important;
+      border: none;
+      font-weight: bold;
+      display: none;
+    }
+
+    body.dark-mode .btn-return-search {
+      color: #121212 !important;
+    }
+
     /* 検索バーエリア */
     .search-box {
       width: 100%;
@@ -270,7 +282,10 @@
 
   <!-- ツールバー -->
   <div class="toolbar">
-    <button id="btnMenu">☰ 目次</button>
+    <div style="display:flex; gap:6px;">
+      <button id="btnMenu">☰ 目次</button>
+      <button id="btnReturnSearch" class="btn-return-search">← 検索結果一覧へ</button>
+    </div>
     <div class="btn-group">
       <button id="btnSmall">小</button>
       <button id="btnReset">標準</button>
@@ -399,7 +414,7 @@
       <div class="volume-content" id="vol19" data-vol-title="第十九巻 〇つりの巻（マツリの巻）"><div class="book-header"><h1>第十九巻 〇つりの巻（マツリの巻）</h1></div><div class="content-body"><div class="section-block" id="vol19-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
       <div class="volume-content" id="vol20" data-vol-title="第二十巻 んめの巻（ウメの巻）"><div class="book-header"><h1>第二十巻 んめの巻（ウメの巻）</h1></div><div class="content-body"><div class="section-block" id="vol20-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
       <div class="volume-content" id="vol21" data-vol-title="第二十一巻 三ラの巻（ソラの巻）"><div class="book-header"><h1>第二十一巻 三ラの巻（ソラの巻）</h1></div><div class="content-body"><div class="section-block" id="vol21-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
-      <div class="volume-content" id="vol22" data-vol-title="第二十二巻 ア火ハの巻（アホバの巻）"><div class="book-header"><h1>第二学習巻 ア火ハの巻（アホバの巻）</h1></div><div class="content-body"><div class="section-block" id="vol22-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
+      <div class="volume-content" id="vol22" data-vol-title="第二十二巻 ア火ハの巻（アホバの巻）"><div class="book-header"><h1>第二十二巻 ア火ハの巻（アホバの巻）</h1></div><div class="content-body"><div class="section-block" id="vol22-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
       <div class="volume-content" id="vol23" data-vol-title="第二十三巻 ｜三の巻（ウミの巻）"><div class="book-header"><h1>第二十三巻 ｜三の巻（ウミの巻）</h1></div><div class="content-body"><div class="section-block" id="vol23-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
       <div class="volume-content" id="vol24" data-vol-title="第二十四巻 黄金の巻（コガネの巻）"><div class="book-header"><h1>第二十四巻 黄金の巻（コガネの巻）</h1></div><div class="content-body"><div class="section-block" id="vol24-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
       <div class="volume-content" id="vol25" data-vol-title="第二十五巻 白銀の巻（シロガネの巻）"><div class="book-header"><h1>第二十五巻 白銀の巻（シロガネの巻）</h1></div><div class="content-body"><div class="section-block" id="vol25-1"><h2>第一帖</h2><p>（本文準備中）</p></div></div></div>
@@ -428,6 +443,7 @@
     let isDarkMode = localStorage.getItem('darkMode') === 'true';
     let currentVol = localStorage.getItem('currentVolume') || 'vol1';
     let scrollPositions = JSON.parse(localStorage.getItem('scrollPositions')) || {};
+    let lastSearchScrollPos = 0; // 検索結果画面のスクロール位置記憶用
 
     const drawer = document.getElementById('drawer');
     const overlay = document.getElementById('overlay');
@@ -436,6 +452,7 @@
     const searchCount = document.getElementById('searchCount');
     const searchResultArea = document.getElementById('searchResultArea');
     const readerArea = document.getElementById('readerArea');
+    const btnReturnSearch = document.getElementById('btnReturnSearch');
 
     function applySettings() {
       document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
@@ -451,9 +468,17 @@
       applySettings();
     }
 
-    function switchVolume(volId, targetBlockId = null) {
-      // 検索状態をクリア
-      clearSearchUI();
+    function switchVolume(volId, targetBlockId = null, fromSearchCard = false) {
+      if (fromSearchCard) {
+        // 検索カードから飛んだ場合、戻るボタンを表示する
+        lastSearchScrollPos = window.scrollY;
+        btnReturnSearch.style.display = 'inline-block';
+        searchResultArea.style.display = 'none';
+        readerArea.style.display = 'block';
+      } else {
+        // 通常移動（目次等）のときは検索と「戻るボタン」をリセット
+        clearSearchUI();
+      }
 
       scrollPositions[currentVol] = window.scrollY;
       localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
@@ -496,6 +521,7 @@
       }
 
       btnClearSearch.style.display = 'block';
+      btnReturnSearch.style.display = 'none';
       readerArea.style.display = 'none';
       searchResultArea.style.display = 'block';
       searchResultArea.innerHTML = '';
@@ -503,7 +529,6 @@
       let totalMatchCount = 0;
       const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
 
-      // 全39巻のDOM要素をそのまま走査（非表示の巻も含む）
       const allVolumes = document.querySelectorAll('.volume-content');
 
       allVolumes.forEach(vol => {
@@ -517,7 +542,6 @@
           const p = block.querySelector('p');
           if (!p) return;
 
-          // innerText ではなく textContent で確実に取得
           const rawText = p.textContent || p.innerText || '';
           
           if (reg.test(rawText)) {
@@ -525,7 +549,6 @@
             if (matches) totalMatchCount += matches.length;
 
             const titleText = h2 ? h2.textContent : '帖';
-            // キーワードハイライト処理
             const highlightedText = rawText.replace(reg, '<mark class="highlight">$1</mark>');
 
             const card = document.createElement('div');
@@ -535,9 +558,9 @@
               <div class="search-card-body">${highlightedText}</div>
             `;
 
-            // タップでその場所に直接ジャンプ
+            // タップでその場所にジャンプ（検索結果からの遷移フラグ true）
             card.addEventListener('click', () => {
-              switchVolume(volId, blockId);
+              switchVolume(volId, blockId, true);
             });
 
             searchResultArea.appendChild(card);
@@ -549,9 +572,18 @@
       window.scrollTo(0, 0);
     }
 
+    // 検索結果一覧画面へ戻る処理
+    function returnToSearchResults() {
+      btnReturnSearch.style.display = 'none';
+      readerArea.style.display = 'none';
+      searchResultArea.style.display = 'block';
+      window.scrollTo(0, lastSearchScrollPos);
+    }
+
     function clearSearchUI() {
       searchInput.value = '';
       btnClearSearch.style.display = 'none';
+      btnReturnSearch.style.display = 'none';
       searchCount.textContent = '';
       searchResultArea.innerHTML = '';
       searchResultArea.style.display = 'none';
@@ -564,11 +596,12 @@
 
     searchInput.addEventListener('input', performGlobalSearch);
     btnClearSearch.addEventListener('click', clearSearchUI);
+    btnReturnSearch.addEventListener('click', returnToSearchResults);
 
     // スクロール位置保存
     let scrollTimer;
     window.addEventListener('scroll', () => {
-      if (searchInput.value.trim() !== '') return;
+      if (searchInput.value.trim() !== '' && readerArea.style.display === 'none') return;
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => {
         scrollPositions[currentVol] = window.scrollY;
@@ -636,10 +669,10 @@
       }
     }, { passive: false });
 
-    // オフライン対応（キャッシュの更新）
+    // オフライン対応
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'hifumi-app-v6';
+        const CACHE_NAME = 'hifumi-app-v7';
         self.addEventListener('install', (e) => {
           e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
         });
