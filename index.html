@@ -443,7 +443,8 @@
     let isDarkMode = localStorage.getItem('darkMode') === 'true';
     let currentVol = localStorage.getItem('currentVolume') || 'vol1';
     let scrollPositions = JSON.parse(localStorage.getItem('scrollPositions')) || {};
-    let lastSearchScrollPos = 0; // 検索結果画面のスクロール位置記憶用
+    let lastSearchScrollPos = 0;
+    let currentSearchKeyword = '';
 
     const drawer = document.getElementById('drawer');
     const overlay = document.getElementById('overlay');
@@ -468,15 +469,33 @@
       applySettings();
     }
 
+    // 本文内の既存ハイライトを元に戻す処理
+    function removeReaderHighlights() {
+      document.querySelectorAll('.volume-content p').forEach(p => {
+        p.innerHTML = p.innerText || p.textContent;
+      });
+    }
+
+    // 本文内にハイライトを付与する処理
+    function applyHighlightToTarget(blockEl, keyword) {
+      if (!blockEl || !keyword) return;
+      const p = blockEl.querySelector('p');
+      if (!p) return;
+
+      const rawText = p.innerText || p.textContent;
+      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+      p.innerHTML = rawText.replace(reg, '<mark class="highlight">$1</mark>');
+    }
+
     function switchVolume(volId, targetBlockId = null, fromSearchCard = false) {
+      removeReaderHighlights();
+
       if (fromSearchCard) {
-        // 検索カードから飛んだ場合、戻るボタンを表示する
         lastSearchScrollPos = window.scrollY;
         btnReturnSearch.style.display = 'inline-block';
         searchResultArea.style.display = 'none';
         readerArea.style.display = 'block';
       } else {
-        // 通常移動（目次等）のときは検索と「戻るボタン」をリセット
         clearSearchUI();
       }
 
@@ -501,6 +520,9 @@
         if (targetBlockId) {
           const el = document.getElementById(targetBlockId);
           if (el) {
+            if (fromSearchCard && currentSearchKeyword) {
+              applyHighlightToTarget(el, currentSearchKeyword);
+            }
             const y = el.getBoundingClientRect().top + window.pageYOffset - 70;
             window.scrollTo({ top: y, behavior: 'smooth' });
             return;
@@ -514,6 +536,7 @@
     // --- 全巻一括（横断）検索機能 ---
     function performGlobalSearch() {
       const keyword = searchInput.value.trim();
+      currentSearchKeyword = keyword;
 
       if (!keyword) {
         clearSearchUI();
@@ -542,7 +565,7 @@
           const p = block.querySelector('p');
           if (!p) return;
 
-          const rawText = p.textContent || p.innerText || '';
+          const rawText = p.innerText || p.textContent || '';
           
           if (reg.test(rawText)) {
             const matches = rawText.match(reg);
@@ -558,7 +581,6 @@
               <div class="search-card-body">${highlightedText}</div>
             `;
 
-            // タップでその場所にジャンプ（検索結果からの遷移フラグ true）
             card.addEventListener('click', () => {
               switchVolume(volId, blockId, true);
             });
@@ -572,7 +594,6 @@
       window.scrollTo(0, 0);
     }
 
-    // 検索結果一覧画面へ戻る処理
     function returnToSearchResults() {
       btnReturnSearch.style.display = 'none';
       readerArea.style.display = 'none';
@@ -581,6 +602,7 @@
     }
 
     function clearSearchUI() {
+      currentSearchKeyword = '';
       searchInput.value = '';
       btnClearSearch.style.display = 'none';
       btnReturnSearch.style.display = 'none';
@@ -588,6 +610,7 @@
       searchResultArea.innerHTML = '';
       searchResultArea.style.display = 'none';
       readerArea.style.display = 'block';
+      removeReaderHighlights();
     }
 
     function escapeRegExp(string) {
@@ -672,7 +695,7 @@
     // オフライン対応
     if ('serviceWorker' in navigator) {
       const swCode = `
-        const CACHE_NAME = 'hifumi-app-v7';
+        const CACHE_NAME = 'hifumi-app-v9';
         self.addEventListener('install', (e) => {
           e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
         });
