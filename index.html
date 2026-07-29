@@ -1682,18 +1682,53 @@
       }
     }, { passive: false });
 
+    // オフライン対応（キャッシュの強制最新化付き）
     if ('serviceWorker' in navigator) {
+      const CACHE_NAME = 'hifumi-app-v17'; // バージョンを更新
       const swCode = `
-        const CACHE_NAME = 'hifumi-app-v16';
+        const CACHE_NAME = '${CACHE_NAME}';
+        const ASSETS = [
+          './',
+          './index.html'
+        ];
         self.addEventListener('install', (e) => {
-          e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
+          self.skipWaiting();
+          e.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+          );
+        });
+        self.addEventListener('activate', (e) => {
+          e.waitUntil(
+            caches.keys().then((keys) => {
+              return Promise.all(
+                keys.map((key) => {
+                  if (key !== CACHE_NAME) {
+                    return caches.delete(key);
+                  }
+                })
+              );
+            }).then(() => self.clients.claim())
+          );
         });
         self.addEventListener('fetch', (e) => {
-          e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
+          e.respondWith(
+            caches.match(e.request).then((res) => {
+              return res || fetch(e.request).then((response) => {
+                return caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(e.request, response.clone());
+                  return response;
+                });
+              });
+            }).catch(() => caches.match('./index.html'))
+          );
         });
       `;
       const blob = new Blob([swCode], { type: 'application/javascript' });
-      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).then(() => {
+        console.log('SW registered successfully.');
+      }).catch((err) => {
+        console.error('SW registration failed:', err);
+      });
     }
 
     applySettings();
