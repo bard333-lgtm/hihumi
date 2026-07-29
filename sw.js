@@ -1,13 +1,11 @@
-const CACHE_NAME = 'hifumi-pwa-v21';
-const ASSETS = [
-  './',
-  './index.html'
-];
+const CACHE_NAME = 'hifumi-pwa-force-update-v22';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(['./', './index.html']);
+    })
   );
 });
 
@@ -16,9 +14,8 @@ self.addEventListener('activate', (e) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          // 古いキャッシュをすべて完全に削除する
+          return caches.delete(key);
         })
       );
     }).then(() => self.clients.claim())
@@ -27,14 +24,18 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then((res) => {
-      return res || fetch(e.request).then((response) => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
-        }
-        return response;
+    fetch(e.request).then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        const clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(e.request, clone);
+        });
+      }
+      return networkResponse;
+    }).catch(() => {
+      return caches.match(e.request).then((res) => {
+        return res || caches.match('./index.html');
       });
-    }).catch(() => caches.match('./index.html'))
+    })
   );
 });
