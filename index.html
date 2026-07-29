@@ -1399,7 +1399,6 @@
     let currentSearchKeyword = '';
     let currentSearchCategory = 'all';
 
-    // エラー防止用のローカルストレージ安全取得
     try {
       currentFontSize = parseInt(localStorage.getItem('fontSize')) || 18;
       isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -1610,7 +1609,6 @@
       if (overlay) overlay.classList.remove('open');
     }
 
-    // --- イベントリスナーの一括登録 ---
     document.addEventListener('click', (e) => {
       if (e.target.closest('#btnMenu')) { openDrawer(); return; }
       if (e.target.closest('#overlay')) { closeDrawer(); return; }
@@ -1670,48 +1668,17 @@
       }, 200);
     });
 
-    // --- インライン型オフラインService Worker制御（完全ローカル対応） ---
+    // 正しい外部 sw.js の読み込み登録
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        const CACHE_NAME = 'hifumi-app-offline-v20';
-        const swCode = `
-          const CACHE_NAME = '${CACHE_NAME}';
-          self.addEventListener('install', (e) => {
-            self.skipWaiting();
-            e.waitUntil(
-              caches.open(CACHE_NAME).then((cache) => cache.addAll(['./']))
-            );
-          });
-          self.addEventListener('activate', (e) => {
-            e.waitUntil(
-              caches.keys().then((keys) => Promise.all(
-                keys.map((k) => k !== CACHE_NAME ? caches.delete(k) : null)
-              )).then(() => self.clients.claim())
-            );
-          });
-          self.addEventListener('fetch', (e) => {
-            e.respondWith(
-              caches.match(e.request).then((res) => {
-                if (res) return res;
-                return fetch(e.request).then((netRes) => {
-                  if (netRes && netRes.status === 200) {
-                    const clone = netRes.clone();
-                    caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
-                  }
-                  return netRes;
-                }).catch(() => caches.match('./'));
-              })
-            );
-          });
-        `;
-        try {
-          const blob = new Blob([swCode], { type: 'application/javascript' });
-          navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-        } catch(e) {}
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('SW registered:', reg);
+        }).catch((err) => {
+          console.error('SW failed:', err);
+        });
       });
     }
 
-    // 初期起動実行
     applySettings();
     switchVolume(currentVol);
   </script>
