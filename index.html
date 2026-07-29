@@ -1465,4 +1465,294 @@
 
     applySettings();
     switchVolume(currentVol);
+ <script>
+    let currentFontSize = parseInt(localStorage.getItem('fontSize')) || 18;
+    let isDarkMode = localStorage.getItem('darkMode') === 'true';
+    let currentVol = localStorage.getItem('currentVolume') || 'vol1';
+    let scrollPositions = JSON.parse(localStorage.getItem('scrollPositions')) || {};
+    let lastSearchScrollPos = 0;
+    let currentSearchKeyword = '';
+    let currentSearchCategory = 'all'; // all / hifumi / todome / current
+
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('overlay');
+    const searchInput = document.getElementById('searchInput');
+    const btnClearSearch = document.getElementById('btnClearSearch');
+    const searchCount = document.getElementById('searchCount');
+    const searchResultArea = document.getElementById('searchResultArea');
+    const readerArea = document.getElementById('readerArea');
+    const btnReturnSearch = document.getElementById('btnReturnSearch');
+
+    function applySettings() {
+      document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+    }
+
+    function saveAndApply() {
+      localStorage.setItem('fontSize', currentFontSize);
+      applySettings();
+    }
+
+    function removeReaderHighlights() {
+      document.querySelectorAll('.volume-content p').forEach(p => {
+        p.innerHTML = p.innerText || p.textContent;
+      });
+    }
+
+    function applyHighlightToTarget(blockEl, keyword) {
+      if (!blockEl || !keyword) return;
+      const p = blockEl.querySelector('p');
+      if (!p) return;
+
+      const rawText = p.innerText || p.textContent;
+      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+      p.innerHTML = rawText.replace(reg, '<mark class="highlight">$1</mark>');
+    }
+
+    function switchVolume(volId, targetBlockId = null, fromSearchCard = false) {
+      removeReaderHighlights();
+
+      if (fromSearchCard) {
+        lastSearchScrollPos = window.scrollY;
+        btnReturnSearch.style.display = 'inline-block';
+        searchResultArea.style.display = 'none';
+        readerArea.style.display = 'block';
+      } else {
+        clearSearchUI();
+      }
+
+      scrollPositions[currentVol] = window.scrollY;
+      localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
+
+      document.querySelectorAll('.volume-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.volume-item').forEach(el => el.classList.remove('active'));
+
+      const targetVol = document.getElementById(volId);
+      const targetItem = document.querySelector(`.volume-item[data-vol="${volId}"]`);
+
+      if (targetVol) targetVol.classList.add('active');
+      if (targetItem) targetItem.classList.add('active');
+
+      currentVol = volId;
+      localStorage.setItem('currentVolume', currentVol);
+
+      closeDrawer();
+
+      setTimeout(() => {
+        if (targetBlockId) {
+          const el = document.getElementById(targetBlockId);
+          if (el) {
+            if (fromSearchCard && currentSearchKeyword) {
+              applyHighlightToTarget(el, currentSearchKeyword);
+            }
+            const y = el.getBoundingClientRect().top + window.pageYOffset - 70;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+            return;
+          }
+        }
+        const savedPos = scrollPositions[volId] || 0;
+        window.scrollTo(0, savedPos);
+      }, 100);
+    }
+
+    function performGlobalSearch() {
+      const keyword = searchInput.value.trim();
+      currentSearchKeyword = keyword;
+
+      if (!keyword) {
+        clearSearchUI();
+        return;
+      }
+
+      btnClearSearch.style.display = 'block';
+      btnReturnSearch.style.display = 'none';
+      readerArea.style.display = 'none';
+      searchResultArea.style.display = 'block';
+      searchResultArea.innerHTML = '';
+
+      let totalMatchCount = 0;
+      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+
+      const allVolumes = document.querySelectorAll('.volume-content');
+
+      allVolumes.forEach(vol => {
+        const category = vol.getAttribute('data-category');
+        const volId = vol.id;
+
+        // 検索フィルター判定の完全制御
+        if (currentSearchCategory === 'current') {
+          if (volId !== currentVol) return;
+        } else if (currentSearchCategory === 'hifumi') {
+          if (category !== 'hifumi') return;
+        } else if (currentSearchCategory === 'todome') {
+          if (category !== 'todome') return;
+        }
+
+        const volTitle = vol.getAttribute('data-vol-title') || '巻';
+        const blocks = vol.querySelectorAll('.section-block');
+
+        blocks.forEach(block => {
+          const blockId = block.id;
+          const h2 = block.querySelector('h2');
+          const p = block.querySelector('p');
+          if (!p) return;
+
+          const rawText = p.innerText || p.textContent || '';
+          
+          if (reg.test(rawText)) {
+            const matches = rawText.match(reg);
+            if (matches) totalMatchCount += matches.length;
+
+            const titleText = h2 ? h2.textContent : '帖';
+            const highlightedText = rawText.replace(reg, '<mark class="highlight">$1</mark>');
+
+            const card = document.createElement('div');
+            card.className = 'search-card';
+            card.innerHTML = `
+              <div class="search-card-header">${volTitle} - ${titleText}</div>
+              <div class="search-card-body">${highlightedText}</div>
+            `;
+
+            card.addEventListener('click', () => {
+              switchVolume(volId, blockId, true);
+            });
+
+            searchResultArea.appendChild(card);
+          }
+        });
+      });
+
+      searchCount.textContent = totalMatchCount > 0 ? `${totalMatchCount}件ヒット` : '該当なし';
+      window.scrollTo(0, 0);
+    }
+
+    // フィルターボタンのクリック判定を確実に（イベント移譲方式）
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.filter-btn');
+      if (!btn) return;
+
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      currentSearchCategory = btn.getAttribute('data-category');
+
+      if (searchInput.value.trim() !== '') {
+        performGlobalSearch();
+      }
+    });
+
+    function returnToSearchResults() {
+      btnReturnSearch.style.display = 'none';
+      readerArea.style.display = 'none';
+      searchResultArea.style.display = 'block';
+      window.scrollTo(0, lastSearchScrollPos);
+    }
+
+    function clearSearchUI() {
+      currentSearchKeyword = '';
+      searchInput.value = '';
+      btnClearSearch.style.display = 'none';
+      btnReturnSearch.style.display = 'none';
+      searchCount.textContent = '';
+      searchResultArea.innerHTML = '';
+      searchResultArea.style.display = 'none';
+      readerArea.style.display = 'block';
+      removeReaderHighlights();
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    searchInput.addEventListener('input', performGlobalSearch);
+    btnClearSearch.addEventListener('click', clearSearchUI);
+    btnReturnSearch.addEventListener('click', returnToSearchResults);
+
+    let scrollTimer;
+    window.addEventListener('scroll', () => {
+      if (searchInput.value.trim() !== '' && readerArea.style.display === 'none') return;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrollPositions[currentVol] = window.scrollY;
+        localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
+      }, 200);
+    });
+
+    function openDrawer() { drawer.classList.add('open'); overlay.classList.add('open'); }
+    function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('open'); }
+
+    document.getElementById('btnMenu').addEventListener('click', openDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    document.querySelectorAll('.volume-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const volId = e.target.getAttribute('data-vol');
+        switchVolume(volId);
+      });
+    });
+
+    document.getElementById('btnSmall').addEventListener('click', () => {
+      if (currentFontSize > 12) { currentFontSize -= 2; saveAndApply(); }
+    });
+    document.getElementById('btnLarge').addEventListener('click', () => {
+      if (currentFontSize < 42) { currentFontSize += 2; saveAndApply(); }
+    });
+    document.getElementById('btnReset').addEventListener('click', () => {
+      currentFontSize = 18; saveAndApply();
+    });
+    document.getElementById('btnToggleDark').addEventListener('click', () => {
+      isDarkMode = !isDarkMode;
+      localStorage.setItem('darkMode', isDarkMode);
+      applySettings();
+    });
+
+    let initialDistance = 0;
+    let initialFontSize = 18;
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches);
+        initialFontSize = currentFontSize;
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const currentDistance = getDistance(e.touches);
+        const distanceChange = currentDistance - initialDistance;
+        let newSize = initialFontSize + Math.round(distanceChange / 12);
+        newSize = Math.max(12, Math.min(42, newSize));
+        if (newSize !== currentFontSize) {
+          currentFontSize = newSize;
+          applySettings();
+        }
+      }
+    }, { passive: false });
+
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'hifumi-app-v15';
+        self.addEventListener('install', (e) => {
+          e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['./'])));
+        });
+        self.addEventListener('fetch', (e) => {
+          e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request)));
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+
+    applySettings();
+    switchVolume(currentVol);
   </script>
