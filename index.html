@@ -5816,6 +5816,15 @@
     const readerArea = document.getElementById('readerArea');
     const btnReturnSearch = document.getElementById('btnReturnSearch');
 
+    // ★カタカナをひらがなに変換する関数（ひらがな・カタカナを同一視するため）
+    function toHiragana(str) {
+      if (!str) return "";
+      return str.replace(/[\u30a1-\u30f6]/g, function(match) {
+        var chr = match.charCodeAt(0) - 0x60;
+        return String.fromCharCode(chr);
+      });
+    }
+
     function applySettings() {
       document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
       if (isDarkMode) {
@@ -5845,6 +5854,7 @@
       if (!p) return;
 
       const rawText = p.innerText || p.textContent;
+      // ハイライト時は入力された元のキーワードを元に正規表現を作成
       const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
       p.innerHTML = rawText.replace(reg, '<mark class="highlight">$1</mark>');
     }
@@ -5901,10 +5911,10 @@
 
     function performGlobalSearch() {
       if (!searchInput) return;
-      const keyword = searchInput.value.trim();
-      currentSearchKeyword = keyword;
+      const originalKeyword = searchInput.value.trim();
+      currentSearchKeyword = originalKeyword;
 
-      if (!keyword) {
+      if (!originalKeyword) {
         clearSearchUI();
         return;
       }
@@ -5918,7 +5928,10 @@
       }
 
       let totalMatchCount = 0;
-      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+
+      // ★検索ワードをひらがなに変換（比較用）
+      const searchKeywordHira = toHiragana(originalKeyword);
+      const searchRegHira = new RegExp(`(${escapeRegExp(searchKeywordHira)})`, 'gi');
 
       const allVolumes = document.querySelectorAll('.volume-content');
 
@@ -5945,12 +5958,39 @@
 
           const rawText = p.innerText || p.textContent || '';
           
-          if (reg.test(rawText)) {
-            const matches = rawText.match(reg);
+          // ★本文もひらがなに変換してマッチ判定を行う
+          const rawTextHira = toHiragana(rawText);
+
+          if (searchRegHira.test(rawTextHira)) {
+            const matches = rawTextHira.match(searchRegHira);
             if (matches) totalMatchCount += matches.length;
 
             const titleText = h2 ? h2.textContent : '帖';
-            const highlightedText = rawText.replace(reg, '<mark class="highlight">$1</mark>');
+
+            // ★ハイライトは「元々の本文(漢字やカタカナ混じり)」の中から、
+            // ユーザーが入力したキーワード、またはそのカタカナ/ひらがな表記に対応させるため
+            // まずは元の文字をそのままハイライトできるようにする
+            // （ひらがな・カタカナ両方でヒットさせつつ、元の表記のまま綺麗に黄色く光らせます）
+            let highlightedText = rawText;
+            
+            // 入力されたキーワード（元）と、その逆（ひらがな⇔カタカナ）のパターンを両方ハイライト対象にする
+            const isKatakanaQuery = /^[\u30a1-\u30f6]+$/.test(originalKeyword);
+            const targetWordForHighlight = originalKeyword;
+            const regHighlight = new RegExp(`(${escapeRegExp(targetWordForHighlight)})`, 'gi');
+            
+            // 万が一カタカナ/ひらがなが混ざって一致しない場合のフォールバックとして、
+            // 文字単位ではなく安全な置換を行う
+            highlightedText = rawText.replace(regHighlight, '<mark class="highlight">$1</mark>');
+            
+            // もし完全一致でハイライトできず、かつひらがな変換したものでヒットしている場合の補助
+            if (highlightedText === rawText) {
+              // カタカナをひらがなに置換した状態で位置を探すなどの高度な処理の代わりに、
+              // 入力された文字のひらがな・カタカナバリエーションを生成
+              const hiraVar = toHiragana(originalKeyword);
+              const kataVar = originalKeyword.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
+              const regMulti = new RegExp(`(${escapeRegExp(originalKeyword)}|${escapeRegExp(hiraVar)}|${escapeRegExp(kataVar)})`, 'gi');
+              highlightedText = rawText.replace(regMulti, '<mark class="highlight">$1</mark>');
+            }
 
             const card = document.createElement('div');
             card.className = 'search-card';
@@ -6067,7 +6107,6 @@
       }, 200);
     });
 
-    // 正しい外部 sw.js の読み込み登録
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then((reg) => {
@@ -6080,7 +6119,7 @@
 
     applySettings();
     switchVolume(currentVol);
-    // --- ピンチ操作（2本指での拡大縮小）の復活 ---
+
     let initialDistance = 0;
     let initialFontSize = 18;
 
@@ -6102,7 +6141,7 @@
         const currentDistance = getDistance(e.touches);
         const distanceChange = currentDistance - initialDistance;
         let newSize = initialFontSize + Math.round(distanceChange / 12);
-        newSize = Math.max(12, Math.min(42, newSize)); // 12px〜42pxに制限
+        newSize = Math.max(12, Math.min(42, newSize));
         if (newSize !== currentFontSize) {
           currentFontSize = newSize;
           saveAndApply();
