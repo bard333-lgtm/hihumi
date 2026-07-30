@@ -5789,365 +5789,326 @@
   </div>
 
   <script>
-    // --- 初期状態設定 ---
-    let currentFontSize = 18;
-    let isDarkMode = false;
-    let currentVol = 'vol1';
-    let scrollPositions = {};
-    let lastSearchScrollPos = 0;
-    let currentSearchKeyword = '';
-    let currentSearchCategory = 'all';
+      // --- 初期状態設定 ---
+    let currentFontSize = 18;
+    let isDarkMode = false;
+    let currentVol = 'vol1';
+    let scrollPositions = {};
+    let lastSearchScrollPos = 0;
+    let currentSearchKeyword = '';
+    let currentSearchCategory = 'all';
 
-    try {
-      currentFontSize = parseInt(localStorage.getItem('fontSize')) || 18;
-      isDarkMode = localStorage.getItem('darkMode') === 'true';
-      currentVol = localStorage.getItem('currentVolume') || 'vol1';
-      scrollPositions = JSON.parse(localStorage.getItem('scrollPositions')) || {};
-    } catch(e) {
-      console.warn('Storage read failed:', e);
-    }
+    try {
+      currentFontSize = parseInt(localStorage.getItem('fontSize')) || 18;
+      isDarkMode = localStorage.getItem('darkMode') === 'true';
+      currentVol = localStorage.getItem('currentVolume') || 'vol1';
+      scrollPositions = JSON.parse(localStorage.getItem('scrollPositions')) || {};
+    } catch(e) {
+      console.warn('Storage read failed:', e);
+    }
 
-    const drawer = document.getElementById('drawer');
-    const overlay = document.getElementById('overlay');
-    const searchInput = document.getElementById('searchInput');
-    const btnClearSearch = document.getElementById('btnClearSearch');
-    const searchCount = document.getElementById('searchCount');
-    const searchResultArea = document.getElementById('searchResultArea');
-    const readerArea = document.getElementById('readerArea');
-    const btnReturnSearch = document.getElementById('btnReturnSearch');
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('overlay');
+    const searchInput = document.getElementById('searchInput');
+    const btnClearSearch = document.getElementById('btnClearSearch');
+    const searchCount = document.getElementById('searchCount');
+    const searchResultArea = document.getElementById('searchResultArea');
+    const readerArea = document.getElementById('readerArea');
+    const btnReturnSearch = document.getElementById('btnReturnSearch');
 
-    // ★カタカナをひらがなに変換する関数（ひらがな・カタカナを同一視するため）
-    function toHiragana(str) {
-      if (!str) return "";
-      return str.replace(/[\u30a1-\u30f6]/g, function(match) {
-        var chr = match.charCodeAt(0) - 0x60;
-        return String.fromCharCode(chr);
-      });
-    }
+    function applySettings() {
+      document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
+      if (isDarkMode) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+    }
 
-    function applySettings() {
-      document.documentElement.style.setProperty('--font-size', currentFontSize + 'px');
-      if (isDarkMode) {
-        document.body.classList.add('dark-mode');
-      } else {
-        document.body.classList.remove('dark-mode');
-      }
-    }
+    function saveAndApply() {
+      try {
+        localStorage.setItem('fontSize', currentFontSize);
+        localStorage.setItem('darkMode', isDarkMode);
+      } catch(e) {}
+      applySettings();
+    }
 
-    function saveAndApply() {
-      try {
-        localStorage.setItem('fontSize', currentFontSize);
-        localStorage.setItem('darkMode', isDarkMode);
-      } catch(e) {}
-      applySettings();
-    }
+    function removeReaderHighlights() {
+      document.querySelectorAll('.volume-content p').forEach(p => {
+        p.innerHTML = p.innerText || p.textContent;
+      });
+    }
 
-    function removeReaderHighlights() {
-      document.querySelectorAll('.volume-content p').forEach(p => {
-        p.innerHTML = p.innerText || p.textContent;
-      });
-    }
+    function applyHighlightToTarget(blockEl, keyword) {
+      if (!blockEl || !keyword) return;
+      const p = blockEl.querySelector('p');
+      if (!p) return;
 
-    function applyHighlightToTarget(blockEl, keyword) {
-      if (!blockEl || !keyword) return;
-      const p = blockEl.querySelector('p');
-      if (!p) return;
+      const rawText = p.innerText || p.textContent;
+      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+      p.innerHTML = rawText.replace(reg, '<mark class="highlight">$1</mark>');
+    }
 
-      const rawText = p.innerText || p.textContent;
-      // ハイライト時は入力された元のキーワードを元に正規表現を作成
-      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
-      p.innerHTML = rawText.replace(reg, '<mark class="highlight">$1</mark>');
-    }
+    function switchVolume(volId, targetBlockId = null, fromSearchCard = false) {
+      removeReaderHighlights();
 
-    function switchVolume(volId, targetBlockId = null, fromSearchCard = false) {
-      removeReaderHighlights();
+      if (fromSearchCard) {
+        lastSearchScrollPos = window.scrollY;
+        if (btnReturnSearch) btnReturnSearch.style.display = 'inline-block';
+        if (searchResultArea) searchResultArea.style.display = 'none';
+        if (readerArea) readerArea.style.display = 'block';
+      } else {
+        clearSearchUI();
+      }
 
-      if (fromSearchCard) {
-        lastSearchScrollPos = window.scrollY;
-        if (btnReturnSearch) btnReturnSearch.style.display = 'inline-block';
-        if (searchResultArea) searchResultArea.style.display = 'none';
-        if (readerArea) readerArea.style.display = 'block';
-      } else {
-        clearSearchUI();
-      }
+      scrollPositions[currentVol] = window.scrollY;
+      try {
+        localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
+      } catch(e) {}
 
-      scrollPositions[currentVol] = window.scrollY;
-      try {
-        localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
-      } catch(e) {}
+      document.querySelectorAll('.volume-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.volume-item').forEach(el => el.classList.remove('active'));
 
-      document.querySelectorAll('.volume-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.volume-item').forEach(el => el.classList.remove('active'));
+      const targetVol = document.getElementById(volId);
+      const targetItem = document.querySelector(`.volume-item[data-vol="${volId}"]`);
 
-      const targetVol = document.getElementById(volId);
-      const targetItem = document.querySelector(`.volume-item[data-vol="${volId}"]`);
+      if (targetVol) targetVol.classList.add('active');
+      if (targetItem) targetItem.classList.add('active');
 
-      if (targetVol) targetVol.classList.add('active');
-      if (targetItem) targetItem.classList.add('active');
+      currentVol = volId;
+      try {
+        localStorage.setItem('currentVolume', currentVol);
+      } catch(e) {}
 
-      currentVol = volId;
-      try {
-        localStorage.setItem('currentVolume', currentVol);
-      } catch(e) {}
+      closeDrawer();
 
-      closeDrawer();
+      setTimeout(() => {
+        if (targetBlockId) {
+          const el = document.getElementById(targetBlockId);
+          if (el) {
+            if (fromSearchCard && currentSearchKeyword) {
+              applyHighlightToTarget(el, currentSearchKeyword);
+            }
+            const y = el.getBoundingClientRect().top + window.pageYOffset - 70;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+            return;
+          }
+        }
+        const savedPos = scrollPositions[volId] || 0;
+        window.scrollTo(0, savedPos);
+      }, 100);
+    }
 
-      setTimeout(() => {
-        if (targetBlockId) {
-          const el = document.getElementById(targetBlockId);
-          if (el) {
-            if (fromSearchCard && currentSearchKeyword) {
-              applyHighlightToTarget(el, currentSearchKeyword);
-            }
-            const y = el.getBoundingClientRect().top + window.pageYOffset - 70;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-            return;
-          }
-        }
-        const savedPos = scrollPositions[volId] || 0;
-        window.scrollTo(0, savedPos);
-      }, 100);
-    }
+    function performGlobalSearch() {
+      if (!searchInput) return;
+      const keyword = searchInput.value.trim();
+      currentSearchKeyword = keyword;
 
-    function performGlobalSearch() {
-      if (!searchInput) return;
-      const originalKeyword = searchInput.value.trim();
-      currentSearchKeyword = originalKeyword;
+      if (!keyword) {
+        clearSearchUI();
+        return;
+      }
 
-      if (!originalKeyword) {
-        clearSearchUI();
-        return;
-      }
+      if (btnClearSearch) btnClearSearch.style.display = 'block';
+      if (btnReturnSearch) btnReturnSearch.style.display = 'none';
+      if (readerArea) readerArea.style.display = 'none';
+      if (searchResultArea) {
+        searchResultArea.style.display = 'block';
+        searchResultArea.innerHTML = '';
+      }
 
-      if (btnClearSearch) btnClearSearch.style.display = 'block';
-      if (btnReturnSearch) btnReturnSearch.style.display = 'none';
-      if (readerArea) readerArea.style.display = 'none';
-      if (searchResultArea) {
-        searchResultArea.style.display = 'block';
-        searchResultArea.innerHTML = '';
-      }
+      let totalMatchCount = 0;
+      const reg = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
 
-      let totalMatchCount = 0;
+      const allVolumes = document.querySelectorAll('.volume-content');
 
-      // ★検索ワードをひらがなに変換（比較用）
-      const searchKeywordHira = toHiragana(originalKeyword);
-      const searchRegHira = new RegExp(`(${escapeRegExp(searchKeywordHira)})`, 'gi');
+      allVolumes.forEach(vol => {
+        const category = vol.getAttribute('data-category');
+        const volId = vol.id;
 
-      const allVolumes = document.querySelectorAll('.volume-content');
+        if (currentSearchCategory === 'current') {
+          if (volId !== currentVol) return;
+        } else if (currentSearchCategory === 'hifumi') {
+          if (category !== 'hifumi') return;
+        } else if (currentSearchCategory === 'todome') {
+          if (category !== 'todome') return;
+        }
 
-      allVolumes.forEach(vol => {
-        const category = vol.getAttribute('data-category');
-        const volId = vol.id;
+        const volTitle = vol.getAttribute('data-vol-title') || '巻';
+        const blocks = vol.querySelectorAll('.section-block');
 
-        if (currentSearchCategory === 'current') {
-          if (volId !== currentVol) return;
-        } else if (currentSearchCategory === 'hifumi') {
-          if (category !== 'hifumi') return;
-        } else if (currentSearchCategory === 'todome') {
-          if (category !== 'todome') return;
-        }
+        blocks.forEach(block => {
+          const blockId = block.id;
+          const h2 = block.querySelector('h2');
+          const p = block.querySelector('p');
+          if (!p) return;
 
-        const volTitle = vol.getAttribute('data-vol-title') || '巻';
-        const blocks = vol.querySelectorAll('.section-block');
+          const rawText = p.innerText || p.textContent || '';
+          
+          if (reg.test(rawText)) {
+            const matches = rawText.match(reg);
+            if (matches) totalMatchCount += matches.length;
 
-        blocks.forEach(block => {
-          const blockId = block.id;
-          const h2 = block.querySelector('h2');
-          const p = block.querySelector('p');
-          if (!p) return;
+            const titleText = h2 ? h2.textContent : '帖';
+            const highlightedText = rawText.replace(reg, '<mark class="highlight">$1</mark>');
 
-          const rawText = p.innerText || p.textContent || '';
-          
-          // ★本文もひらがなに変換してマッチ判定を行う
-          const rawTextHira = toHiragana(rawText);
+            const card = document.createElement('div');
+            card.className = 'search-card';
+            card.innerHTML = `
+              <div class="search-card-header">${volTitle} - ${titleText}</div>
+              <div class="search-card-body">${highlightedText}</div>
+            `;
 
-          if (searchRegHira.test(rawTextHira)) {
-            const matches = rawTextHira.match(searchRegHira);
-            if (matches) totalMatchCount += matches.length;
+            card.addEventListener('click', () => {
+              switchVolume(volId, blockId, true);
+            });
 
-            const titleText = h2 ? h2.textContent : '帖';
+            if (searchResultArea) searchResultArea.appendChild(card);
+          }
+        });
+      });
 
-            // ★ハイライトは「元々の本文(漢字やカタカナ混じり)」の中から、
-            // ユーザーが入力したキーワード、またはそのカタカナ/ひらがな表記に対応させるため
-            // まずは元の文字をそのままハイライトできるようにする
-            // （ひらがな・カタカナ両方でヒットさせつつ、元の表記のまま綺麗に黄色く光らせます）
-            let highlightedText = rawText;
-            
-            // 入力されたキーワード（元）と、その逆（ひらがな⇔カタカナ）のパターンを両方ハイライト対象にする
-            const isKatakanaQuery = /^[\u30a1-\u30f6]+$/.test(originalKeyword);
-            const targetWordForHighlight = originalKeyword;
-            const regHighlight = new RegExp(`(${escapeRegExp(targetWordForHighlight)})`, 'gi');
-            
-            // 万が一カタカナ/ひらがなが混ざって一致しない場合のフォールバックとして、
-            // 文字単位ではなく安全な置換を行う
-            highlightedText = rawText.replace(regHighlight, '<mark class="highlight">$1</mark>');
-            
-            // もし完全一致でハイライトできず、かつひらがな変換したものでヒットしている場合の補助
-            if (highlightedText === rawText) {
-              // カタカナをひらがなに置換した状態で位置を探すなどの高度な処理の代わりに、
-              // 入力された文字のひらがな・カタカナバリエーションを生成
-              const hiraVar = toHiragana(originalKeyword);
-              const kataVar = originalKeyword.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
-              const regMulti = new RegExp(`(${escapeRegExp(originalKeyword)}|${escapeRegExp(hiraVar)}|${escapeRegExp(kataVar)})`, 'gi');
-              highlightedText = rawText.replace(regMulti, '<mark class="highlight">$1</mark>');
-            }
+      if (searchCount) {
+        searchCount.textContent = totalMatchCount > 0 ? `${totalMatchCount}件ヒット` : '該当なし';
+      }
+      window.scrollTo(0, 0);
+    }
 
-            const card = document.createElement('div');
-            card.className = 'search-card';
-            card.innerHTML = `
-              <div class="search-card-header">${volTitle} - ${titleText}</div>
-              <div class="search-card-body">${highlightedText}</div>
-            `;
+    function returnToSearchResults() {
+      if (btnReturnSearch) btnReturnSearch.style.display = 'none';
+      if (readerArea) readerArea.style.display = 'none';
+      if (searchResultArea) searchResultArea.style.display = 'block';
+      window.scrollTo(0, lastSearchScrollPos);
+    }
 
-            card.addEventListener('click', () => {
-              switchVolume(volId, blockId, true);
-            });
+    function clearSearchUI() {
+      currentSearchKeyword = '';
+      if (searchInput) searchInput.value = '';
+      if (btnClearSearch) btnClearSearch.style.display = 'none';
+      if (btnReturnSearch) btnReturnSearch.style.display = 'none';
+      if (searchCount) searchCount.textContent = '';
+      if (searchResultArea) {
+        searchResultArea.innerHTML = '';
+        searchResultArea.style.display = 'none';
+      }
+      if (readerArea) readerArea.style.display = 'block';
+      removeReaderHighlights();
+    }
 
-            if (searchResultArea) searchResultArea.appendChild(card);
-          }
-        });
-      });
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 
-      if (searchCount) {
-        searchCount.textContent = totalMatchCount > 0 ? `${totalMatchCount}件ヒット` : '該当なし';
-      }
-      window.scrollTo(0, 0);
-    }
+    function openDrawer() {
+      if (drawer) drawer.classList.add('open');
+      if (overlay) overlay.classList.add('open');
+    }
+    function closeDrawer() {
+      if (drawer) drawer.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
 
-    function returnToSearchResults() {
-      if (btnReturnSearch) btnReturnSearch.style.display = 'none';
-      if (readerArea) readerArea.style.display = 'none';
-      if (searchResultArea) searchResultArea.style.display = 'block';
-      window.scrollTo(0, lastSearchScrollPos);
-    }
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('#btnMenu')) { openDrawer(); return; }
+      if (e.target.closest('#overlay')) { closeDrawer(); return; }
+      
+      const volItem = e.target.closest('.volume-item');
+      if (volItem) {
+        const volId = volItem.getAttribute('data-vol');
+        switchVolume(volId);
+        return;
+      }
 
-    function clearSearchUI() {
-      currentSearchKeyword = '';
-      if (searchInput) searchInput.value = '';
-      if (btnClearSearch) btnClearSearch.style.display = 'none';
-      if (btnReturnSearch) btnReturnSearch.style.display = 'none';
-      if (searchCount) searchCount.textContent = '';
-      if (searchResultArea) {
-        searchResultArea.innerHTML = '';
-        searchResultArea.style.display = 'none';
-      }
-      if (readerArea) readerArea.style.display = 'block';
-      removeReaderHighlights();
-    }
+      if (e.target.closest('#btnSmall')) {
+        if (currentFontSize > 12) { currentFontSize -= 2; saveAndApply(); }
+        return;
+      }
+      if (e.target.closest('#btnReset')) {
+        currentFontSize = 18; saveAndApply();
+        return;
+      }
+      if (e.target.closest('#btnLarge')) {
+        if (currentFontSize < 42) { currentFontSize += 2; saveAndApply(); }
+        return;
+      }
+      if (e.target.closest('#btnToggleDark')) {
+        isDarkMode = !isDarkMode;
+        saveAndApply();
+        return;
+      }
+      if (e.target.closest('#btnClearSearch')) { clearSearchUI(); return; }
+      if (e.target.closest('#btnReturnSearch')) { returnToSearchResults(); return; }
 
-    function escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
+      const filterBtn = e.target.closest('.filter-btn');
+      if (filterBtn) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        filterBtn.classList.add('active');
+        currentSearchCategory = filterBtn.getAttribute('data-category');
+        if (searchInput && searchInput.value.trim() !== '') {
+          performGlobalSearch();
+        }
+        return;
+      }
+    });
 
-    function openDrawer() {
-      if (drawer) drawer.classList.add('open');
-      if (overlay) overlay.classList.add('open');
-    }
-    function closeDrawer() {
-      if (drawer) drawer.classList.remove('open');
-      if (overlay) overlay.classList.remove('open');
-    }
+    if (searchInput) {
+      searchInput.addEventListener('input', performGlobalSearch);
+    }
 
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('#btnMenu')) { openDrawer(); return; }
-      if (e.target.closest('#overlay')) { closeDrawer(); return; }
-      
-      const volItem = e.target.closest('.volume-item');
-      if (volItem) {
-        const volId = volItem.getAttribute('data-vol');
-        switchVolume(volId);
-        return;
-      }
+    let scrollTimer;
+    window.addEventListener('scroll', () => {
+      if (searchInput && searchInput.value.trim() !== '' && readerArea && readerArea.style.display === 'none') return;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        scrollPositions[currentVol] = window.scrollY;
+        try {
+          localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
+        } catch(e) {}
+      }, 200);
+    });
 
-      if (e.target.closest('#btnSmall')) {
-        if (currentFontSize > 12) { currentFontSize -= 2; saveAndApply(); }
-        return;
-      }
-      if (e.target.closest('#btnReset')) {
-        currentFontSize = 18; saveAndApply();
-        return;
-      }
-      if (e.target.closest('#btnLarge')) {
-        if (currentFontSize < 42) { currentFontSize += 2; saveAndApply(); }
-        return;
-      }
-      if (e.target.closest('#btnToggleDark')) {
-        isDarkMode = !isDarkMode;
-        saveAndApply();
-        return;
-      }
-      if (e.target.closest('#btnClearSearch')) { clearSearchUI(); return; }
-      if (e.target.closest('#btnReturnSearch')) { returnToSearchResults(); return; }
+    // 正しい外部 sw.js の読み込み登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('SW registered:', reg);
+        }).catch((err) => {
+          console.error('SW failed:', err);
+        });
+      });
+    }
 
-      const filterBtn = e.target.closest('.filter-btn');
-      if (filterBtn) {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        filterBtn.classList.add('active');
-        currentSearchCategory = filterBtn.getAttribute('data-category');
-        if (searchInput && searchInput.value.trim() !== '') {
-          performGlobalSearch();
-        }
-        return;
-      }
-    });
+    applySettings();
+    switchVolume(currentVol);
+    // --- ピンチ操作（2本指での拡大縮小）の復活 ---
+    let initialDistance = 0;
+    let initialFontSize = 18;
 
-    if (searchInput) {
-      searchInput.addEventListener('input', performGlobalSearch);
-    }
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
 
-    let scrollTimer;
-    window.addEventListener('scroll', () => {
-      if (searchInput && searchInput.value.trim() !== '' && readerArea && readerArea.style.display === 'none') return;
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        scrollPositions[currentVol] = window.scrollY;
-        try {
-          localStorage.setItem('scrollPositions', JSON.stringify(scrollPositions));
-        } catch(e) {}
-      }, 200);
-    });
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        initialDistance = getDistance(e.touches);
+        initialFontSize = currentFontSize;
+      }
+    }, { passive: true });
 
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then((reg) => {
-          console.log('SW registered:', reg);
-        }).catch((err) => {
-          console.error('SW failed:', err);
-        });
-      });
-    }
-
-    applySettings();
-    switchVolume(currentVol);
-
-    let initialDistance = 0;
-    let initialFontSize = 18;
-
-    function getDistance(touches) {
-      const dx = touches[0].clientX - touches[1].clientX;
-      const dy = touches[0].clientY - touches[1].clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    }
-
-    window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        initialDistance = getDistance(e.touches);
-        initialFontSize = currentFontSize;
-      }
-    }, { passive: true });
-
-    window.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2) {
-        const currentDistance = getDistance(e.touches);
-        const distanceChange = currentDistance - initialDistance;
-        let newSize = initialFontSize + Math.round(distanceChange / 12);
-        newSize = Math.max(12, Math.min(42, newSize));
-        if (newSize !== currentFontSize) {
-          currentFontSize = newSize;
-          saveAndApply();
-        }
-      }
-    }, { passive: true });
-  </script>
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        const currentDistance = getDistance(e.touches);
+        const distanceChange = currentDistance - initialDistance;
+        let newSize = initialFontSize + Math.round(distanceChange / 12);
+        newSize = Math.max(12, Math.min(42, newSize)); // 12px〜42pxに制限
+        if (newSize !== currentFontSize) {
+          currentFontSize = newSize;
+          saveAndApply();
+        }
+      }
+    }, { passive: true });
+  </script>
 </body>
 </html>
