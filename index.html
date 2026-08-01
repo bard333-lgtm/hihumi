@@ -654,7 +654,10 @@
           <div class="section-block" id="vol1-42">
             <h2>第四十二帖（四二）</h2>
             <p>初めの御用はこれで済みたから、早うお山開いて呉れよ。お山開いたら、次の世の仕組書かすぞ、一月の間に書いて呉れた神示（ふで）は「上つ巻」として後の世に残して呉れよ、これから一月の間に書かす神示は次の世の、神の世の仕組の神示ざから、それは「下つ巻」として後の世に残さすぞ、その積りで気をつけて呉れよ。御苦労なれども世界の臣民の為ざから、何事も神の申すこと、すなをに聞いて下されよ。七月の九日、ひつくのか三かく。</p>
-          
+          <div class="navigation-buttons" style="text-align: center; margin: 40px 0; padding: 20px 0; border-top: 1px solid #ddd;">
+  <button onclick="goToAdjacentVolume(-1)" style="padding: 10px 20px; margin-right: 15px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">← 前の巻</button>
+  <button onclick="goToAdjacentVolume(1)" style="padding: 10px 20px; background: #333; color: #fff; border: 1px solid #333; border-radius: 4px; cursor: pointer;">次の巻 →</button>
+</div>
           </div>
         </div>
       </div>
@@ -6128,6 +6131,23 @@
         }
       }
     }, { passive: true });
+    // --- 前の巻・次の巻へ移動する機能 ---
+function goToAdjacentVolume(direction) {
+  // ドロワー（目次）にあるすべての巻アイテムから順番（data-vol）をリスト化する
+  const items = Array.from(document.querySelectorAll('.volume-item'));
+  const volIds = items.map(item => item.getAttribute('data-vol'));
+  
+  const currentIndex = volIds.indexOf(currentVol);
+  if (currentIndex === -1) return;
+  
+  let targetIndex = currentIndex + direction;
+  
+  // 最初の巻より前、または最後の巻より後の場合は何もしない（またはループさせる）
+  if (targetIndex < 0 || targetIndex >= volIds.length) return;
+  
+  const targetVolId = volIds[targetIndex];
+  switchVolume(targetVolId);
+}
   </script>
 </body>
 </html>
