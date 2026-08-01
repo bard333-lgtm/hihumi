@@ -4,7 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ひふみ神示・トドメノフミ 読書アプリ</title>
-  
+  <style>
+  /* 画面上部に固定するヘッダーエリア */
+  .sticky-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95); /* 少し透ける白背景 */
+    border-bottom: 1px solid #ddd;
+    padding: 12px 20px;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    z-index: 9999; /* 他の文字や画像の下に隠れないように手前に配置 */
+  }
+
+  /* 固定したヘッダーの分、本文が隠れてしまわないように上の余白をあける */
+  body {
+    padding-top: 60px; 
+  }
+</style>
   <style>
     .mirror-flip {
   display: inline-block;
