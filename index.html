@@ -6,13 +6,19 @@
   <title>ひふみ神示・トドメノフミ 読書アプリ</title>
  
   <style>
-    /* --- ここに書けばアプリ全体に一括で効きます --- */
-  .volume-content p, .section-block p {
-    white-space: pre-wrap; /* または normal */
-    line-height: 1.8;      /* 行間を読みやすく調整 */
-  }
+    /* 本文内の段落や改行ルールを強制的に有効にする */
+.volume-content p, .section-block p {
+  display: block !important;
+  white-space: normal !important;
+  word-break: break-all;
+}
 
-  /* （これまでに作った他のデザイン設定がここに続く） */
+/* 改行タグ（br）自体を確実にブロック要素として機能させる */
+.volume-content br, .section-block br {
+  display: block;
+  content: "";
+  margin-top: 0.5em; /* もし改行の間隔を空けたい場合は調整できます */
+}
     .stack-wrap {
   position: relative;
   display: inline-block;
