@@ -6099,13 +6099,12 @@
     }
 
     function removeReaderHighlights() {
-      document.querySelectorAll('.volume-content p').forEach(p => {
-        // ▼ もし中に丸文字用のタグが含まれていたら、リセット処理の対象外にする
-        if (p.querySelector('.circle-char')) return;
-        
-        p.innerHTML = p.innerText || p.textContent;
-      });
-    }
+  document.querySelectorAll('.volume-content p mark.highlight').forEach(mark => {
+    const parent = mark.parentNode;
+    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+    parent.normalize();
+  });
+}
 
     function applyHighlightToTarget(blockEl, keyword) {
       if (!blockEl || !keyword) return;
