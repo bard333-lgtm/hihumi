@@ -6,18 +6,17 @@
   <title>ひふみ神示・トドメノフミ 読書アプリ</title>
  
   <style>
-    /* 本文内の段落や改行ルールを強制的に有効にする */
-.volume-content p, .section-block p {
+    /* 本文のエリアの横並びを解除し、縦積みにする */
+.volume-content, .section-block, .volume-content p {
   display: block !important;
   white-space: normal !important;
-  word-break: break-all;
+  word-wrap: break-word !important;
 }
 
-/* 改行タグ（br）自体を確実にブロック要素として機能させる */
-.volume-content br, .section-block br {
-  display: block;
-  content: "";
-  margin-top: 0.5em; /* もし改行の間隔を空けたい場合は調整できます */
+/* brタグを強制的に改行させる */
+br {
+  display: block !important;
+  margin-top: 1em !important;
 }
     .stack-wrap {
   position: relative;
