@@ -6099,10 +6099,9 @@
     }
 
     function removeReaderHighlights() {
-  document.querySelectorAll('.volume-content p mark.highlight').forEach(mark => {
-    const parent = mark.parentNode;
-    parent.replaceChild(document.createTextNode(mark.textContent), mark);
-    parent.normalize();
+  document.querySelectorAll('.volume-content p').forEach(p => {
+    if (p.querySelector('.circle-char')) return;
+    p.innerHTML = p.innerText || p.textContent;  // 
   });
 }
 
